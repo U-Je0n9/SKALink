@@ -1,6 +1,6 @@
 openapi: 3.0.3
 info:
-  title: Learnary — SKALA 학습 지식 공유 API
+  title: SKALog — 스칼라 학습 지식 공유 API
   version: 1.0.0
   description: |
     10개 반의 질문·답변, 교수님 보충 설명, 다중 파일 학습자료와 버전,
@@ -23,11 +23,54 @@ tags:
   - name: AdminCourses
   - name: AdminContent
 paths:
+  /auth/email-verifications:
+    post:
+      tags: [Auth]
+      summary: 가입 이메일 인증번호 발송
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email]
+              properties:
+                email: {type: string, format: email, maxLength: 254, example: narae@skala.example}
+      responses:
+        '202': {description: 인증번호 발송 요청 접수}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '409': {$ref: '#/components/responses/Conflict'}
+  /auth/email-verifications/confirm:
+    post:
+      tags: [Auth]
+      summary: 가입 이메일 인증번호 확인
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, code]
+              properties:
+                email: {type: string, format: email}
+                code: {type: string, pattern: '^[0-9]{6}$', example: '123456'}
+      responses:
+        '200':
+          description: 이메일 소유 확인 완료
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [verificationToken, expiresAt]
+                properties:
+                  verificationToken: {type: string, example: email-verification-token}
+                  expiresAt: {type: string, format: date-time}
+        '400': {$ref: '#/components/responses/BadRequest'}
   /auth/register:
     post:
       tags: [Auth]
-      summary: 교육생 회원가입
-      description: 사전 명단의 고유번호·이름·반·이메일이 모두 일치하면 ACTIVE, 아니면 PENDING으로 생성합니다.
+      summary: 교육생·교수님 회원가입
+      description: 이메일 소유 확인 후 교육생은 고유번호·이름·반·이메일, 교수님은 사번·이름·이메일를 내부 등록 정보와 대조합니다. 모두 일치하면 ACTIVE, 아니면 PENDING으로 생성합니다.
       requestBody:
         required: true
         content:
@@ -664,43 +707,6 @@ paths:
         '403': {$ref: '#/components/responses/Forbidden'}
         '404': {$ref: '#/components/responses/NotFound'}
         '409': {$ref: '#/components/responses/Conflict'}
-  /admin/roster:
-    get:
-      tags: [AdminUsers]
-      summary: 사전 교육생 명단 조회
-      parameters:
-        - {$ref: '#/components/parameters/SearchParam'}
-        - {$ref: '#/components/parameters/PageParam'}
-        - {$ref: '#/components/parameters/SizeParam'}
-      responses:
-        '200':
-          description: 명단 목록
-          content:
-            application/json:
-              schema:
-                allOf:
-                  - {$ref: '#/components/schemas/PageMeta'}
-                  - type: object
-                    properties:
-                      items: {type: array, items: {$ref: '#/components/schemas/RosterEntry'}}
-        '403': {$ref: '#/components/responses/Forbidden'}
-    post:
-      tags: [AdminUsers]
-      summary: 사전 교육생 명단 등록
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema: {$ref: '#/components/schemas/RosterEntry'}
-      responses:
-        '201':
-          description: 등록된 명단
-          content:
-            application/json:
-              schema: {$ref: '#/components/schemas/RosterEntry'}
-        '400': {$ref: '#/components/responses/BadRequest'}
-        '403': {$ref: '#/components/responses/Forbidden'}
-        '409': {$ref: '#/components/responses/Conflict'}
   /admin/courses:
     post:
       tags: [AdminCourses]
@@ -744,7 +750,7 @@ paths:
     put:
       tags: [AdminCourses]
       summary: 교수님 배정 전체 저장
-      description: 전임/실습 구분과 담당 층·반·기간을 검증해 전체 배정을 교체합니다.
+      description: 4층·5층 전임 교수님을 각 1명 지정하고, 1~10반 실습 교수님을 각 1명 지정해 전체 배정을 교체합니다.
       parameters:
         - {$ref: '#/components/parameters/CourseId'}
       requestBody:
@@ -753,11 +759,20 @@ paths:
           application/json:
             schema:
               type: object
-              required: [assignments, expectedRevision]
+              required: [leads, practicals, expectedRevision]
               properties:
-                assignments:
+                leads:
                   type: array
-                  items: {$ref: '#/components/schemas/InstructorAssignmentWrite'}
+                  minItems: 2
+                  maxItems: 2
+                  items: {$ref: '#/components/schemas/FloorLeadAssignmentWrite'}
+                  description: 4층과 5층 항목 각 1개
+                practicals:
+                  type: array
+                  minItems: 10
+                  maxItems: 10
+                  items: {$ref: '#/components/schemas/ClassPracticeAssignmentWrite'}
+                  description: 1~10반 항목 각 1개
                 expectedRevision: {type: integer, minimum: 1}
       responses:
         '200':
@@ -948,20 +963,45 @@ components:
         total: {type: integer, minimum: 0, example: 42}
     LoginRequest:
       type: object
-      required: [loginId, password]
+      required: [email, password]
       properties:
-        loginId: {type: string, minLength: 1, maxLength: 100, example: student1}
-        password: {type: string, format: password, minLength: 4, writeOnly: true, example: '1234'}
+        email: {type: string, format: email, maxLength: 254, example: haneul@skala.example}
+        password: {type: string, format: password, minLength: 8, maxLength: 128, writeOnly: true, example: skala1234}
     RegisterRequest:
+      oneOf:
+        - {$ref: '#/components/schemas/StudentRegisterRequest'}
+        - {$ref: '#/components/schemas/ProfessorRegisterRequest'}
+      discriminator:
+        propertyName: role
+        mapping:
+          STUDENT: '#/components/schemas/StudentRegisterRequest'
+          PROFESSOR: '#/components/schemas/ProfessorRegisterRequest'
+    RegisterBase:
       type: object
-      required: [pCode, name, classNumber, email, loginId, password]
+      required: [role, name, email, password, emailVerificationToken]
       properties:
-        pCode: {type: string, pattern: '^P[0-9]{3}$', example: P308}
-        name: {type: string, minLength: 1, maxLength: 100, example: 정나래}
-        classNumber: {type: integer, minimum: 1, maximum: 10, example: 8}
-        email: {type: string, format: email, maxLength: 254, example: narae@skala.example}
-        loginId: {type: string, minLength: 4, maxLength: 100, example: narae}
-        password: {type: string, format: password, minLength: 4, maxLength: 128, writeOnly: true}
+        role: {$ref: '#/components/schemas/Role'}
+        name: {type: string, minLength: 1, maxLength: 100}
+        email: {type: string, format: email, maxLength: 254, description: 로그인 ID로 사용}
+        password: {type: string, format: password, minLength: 8, maxLength: 128, writeOnly: true}
+        emailVerificationToken: {type: string, minLength: 1, writeOnly: true}
+    StudentRegisterRequest:
+      allOf:
+        - {$ref: '#/components/schemas/RegisterBase'}
+        - type: object
+          required: [pCode, classNumber]
+          properties:
+            role: {type: string, enum: [STUDENT]}
+            pCode: {type: string, pattern: '^P[0-9]{3}$', example: P308}
+            classNumber: {type: integer, minimum: 1, maximum: 10, example: 8}
+    ProfessorRegisterRequest:
+      allOf:
+        - {$ref: '#/components/schemas/RegisterBase'}
+        - type: object
+          required: [employeeNo]
+          properties:
+            role: {type: string, enum: [PROFESSOR]}
+            employeeNo: {type: string, pattern: '^T[0-9]{4}$', example: T1010}
     RegisterResponse:
       type: object
       required: [user, autoApproved]
@@ -970,10 +1010,10 @@ components:
         autoApproved: {type: boolean, example: true}
     UserPublic:
       type: object
-      required: [id, loginId, name, role, status]
+      required: [id, email, name, role, status]
       properties:
         id: {type: integer, format: int64, example: 1}
-        loginId: {type: string, example: student1}
+        email: {type: string, format: email, example: haneul@skala.example}
         name: {type: string, example: 김하늘}
         role: {$ref: '#/components/schemas/Role'}
         classNumber: {type: integer, minimum: 1, maximum: 10, nullable: true, example: 1}
@@ -985,18 +1025,10 @@ components:
         - type: object
           properties:
             pCode: {type: string, pattern: '^P[0-9]{3}$', nullable: true}
-            email: {type: string, format: email, nullable: true}
+            employeeNo: {type: string, pattern: '^T[0-9]{4}$', nullable: true}
+            emailVerified: {type: boolean}
             createdAt: {type: string, format: date-time}
             updatedAt: {type: string, format: date-time}
-    RosterEntry:
-      type: object
-      required: [pCode, name, classNumber, email]
-      properties:
-        pCode: {type: string, pattern: '^P[0-9]{3}$', example: P308}
-        name: {type: string, minLength: 1, maxLength: 100}
-        classNumber: {type: integer, minimum: 1, maximum: 10}
-        email: {type: string, format: email}
-        isCurrent: {type: boolean, default: true}
     CourseSession:
       type: object
       required: [floor, startDate, endDate]
@@ -1018,19 +1050,18 @@ components:
           type: array
           uniqueItems: true
           items: {type: integer, minimum: 1, maximum: 10}
-    InstructorAssignmentWrite:
+    FloorLeadAssignmentWrite:
       type: object
-      required: [professorId, instructorKind, floorNumber, classNumbers]
+      required: [floorNumber, professorId]
       properties:
-        professorId: {type: integer, format: int64}
-        instructorKind: {$ref: '#/components/schemas/InstructorKind'}
         floorNumber: {type: integer, enum: [4, 5]}
-        classNumbers:
-          type: array
-          uniqueItems: true
-          items: {type: integer, minimum: 1, maximum: 10}
-        startDate: {type: string, format: date, nullable: true}
-        endDate: {type: string, format: date, nullable: true}
+        professorId: {type: integer, format: int64}
+    ClassPracticeAssignmentWrite:
+      type: object
+      required: [classNumber, professorId]
+      properties:
+        classNumber: {type: integer, minimum: 1, maximum: 10}
+        professorId: {type: integer, format: int64}
     CourseSummary:
       type: object
       required: [id, code, title, phase, displayPeriod, leadProfessors, isMine]
@@ -1264,15 +1295,15 @@ components:
         userState: {$ref: '#/components/schemas/PostUserState'}
     AdminUserCreateRequest:
       type: object
-      required: [loginId, name, role, initialPassword]
+      required: [email, name, role, initialPassword]
       properties:
-        loginId: {type: string, minLength: 4, maxLength: 100}
+        email: {type: string, format: email, maxLength: 254}
         name: {type: string, minLength: 1, maxLength: 100}
         role: {$ref: '#/components/schemas/Role'}
         classNumber: {type: integer, minimum: 1, maximum: 10, nullable: true}
         pCode: {type: string, pattern: '^P[0-9]{3}$', nullable: true}
-        email: {type: string, format: email, nullable: true}
-        initialPassword: {type: string, format: password, minLength: 4, writeOnly: true}
+        employeeNo: {type: string, pattern: '^T[0-9]{4}$', nullable: true}
+        initialPassword: {type: string, format: password, minLength: 8, writeOnly: true}
     AdminUserUpdateRequest:
       type: object
       minProperties: 1
@@ -1282,12 +1313,10 @@ components:
         status: {$ref: '#/components/schemas/UserStatus'}
     AdminCourseWriteRequest:
       type: object
-      required: [title, code, sessions]
+      required: [title, sessions]
       properties:
         title: {type: string, minLength: 1, maxLength: 150}
-        code: {type: string, minLength: 1, maxLength: 50}
-        description: {type: string, maxLength: 5000, nullable: true}
-        sessions: {type: array, minItems: 1, items: {$ref: '#/components/schemas/CourseSession'}}
+        sessions: {type: array, minItems: 2, maxItems: 2, items: {$ref: '#/components/schemas/CourseSession'}, description: 4층과 5층 일정 각 1개}
         expectedRevision: {type: integer, minimum: 1, nullable: true}
     AdminContentItem:
       type: object

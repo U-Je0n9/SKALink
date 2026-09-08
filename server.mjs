@@ -18,7 +18,7 @@ createServer(async (req, res) => {
     req.pipe(proxy);
     return;
   }
-  if(pathname==="/swagger"){res.writeHead(302,{Location:"/swagger.html"}).end();return;}
+  if(pathname==="/swagger"||pathname==="/swagger/"){res.writeHead(302,{Location:"/swagger.html"}).end();return;}
   const requested = pathname === "/" ? "/index.html" : pathname;
   const assetPath=requested.startsWith("/swagger-assets/")?requested.replace("/swagger-assets/","/node_modules/swagger-ui-dist/"):requested;
   const file = normalize(join(root, assetPath));
@@ -35,7 +35,7 @@ createServer(async (req, res) => {
     } catch { res.writeHead(404).end("Not found"); }
   }
 }).listen(port, () => {
-  console.log(`SKALA 지식공유: http://localhost:${port}`);
+  console.log(`SKALog: http://localhost:${port}`);
   console.log(`Swagger UI: http://localhost:${port}/swagger`);
   console.log(`OAS Mock API: http://localhost:${port}/api`);
 });
