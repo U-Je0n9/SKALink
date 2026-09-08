@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Learnary API — Swagger UI</title>
+  <link rel="stylesheet" href="/swagger-assets/swagger-ui.css">
+  <style>body{margin:0;background:#f5f7f5}.top{padding:14px 24px;background:#196b4a;color:#fff;font:600 14px system-ui}.top a{color:#d8f270;margin-left:14px}</style>
+</head>
+<body>
+  <div class="top">Learnary · SKALA 학습 지식 공유 API <a href="/">서비스로 돌아가기</a></div>
+  <div id="swagger-ui"></div>
+  <script src="/swagger-assets/swagger-ui-bundle.js"></script>
+  <script src="/swagger-assets/swagger-ui-standalone-preset.js"></script>
+  <script>
+    SwaggerUIBundle({url:'/SKALA_학습지식공유-API.yml',dom_id:'#swagger-ui',deepLinking:true,presets:[SwaggerUIBundle.presets.apis,SwaggerUIStandalonePreset],layout:'StandaloneLayout',persistAuthorization:true,displayRequestDuration:true,filter:true});
+  </script>
+</body>
+</html>

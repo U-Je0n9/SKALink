@@ -1,3 +1,5 @@
 /data/*
+!data/보충자료 예시.txt
+node_modules/
 *.md
 !README.md

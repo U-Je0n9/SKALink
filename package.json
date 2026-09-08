@@ -2,8 +2,16 @@
   "name": "skala-knowledge-hub",
   "version": "0.1.0",
   "private": true,
+  "type": "module",
   "scripts": {
-    "dev": "node server.mjs",
-    "start": "node server.mjs"
+    "dev": "node dev.mjs",
+    "start": "node dev.mjs",
+    "mock": "prism mock SKALA_학습지식공유-API.yml --host 127.0.0.1 --port 4010"
+  },
+  "dependencies": {
+    "swagger-ui-dist": "^5.32.15"
+  },
+  "devDependencies": {
+    "@stoplight/prism-cli": "^5.16.0"
   }
 }
