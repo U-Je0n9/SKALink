@@ -1,18 +1,21 @@
 openapi: 3.0.3
 info:
   title: SKALog — 스칼라 학습 지식 공유 API
-  version: 1.0.0
+  version: 1.1.0
   description: |
     10개 반의 질문·답변, 교수님 보충 설명, 다중 파일 학습자료와 버전,
     공개 범위, 회원가입 승인 및 시간표 기반 과목·교수님 배정을 위한 API입니다.
 
     Swagger의 Try it out은 이 문서를 직접 읽는 Prism OAS 목 서버로 동작합니다.
     비밀번호 해시와 storageKey는 공개 응답에 포함하지 않습니다.
+    Security Scheme은 과제 지침에 따라 정의하지 않으며, 보호 API는 HttpOnly 세션
+    쿠키를 전제로 401/403 예외를 명시합니다.
 servers:
   - url: /api
     description: Prism OAS 목 서버
 tags:
   - name: Auth
+  - name: Dashboard
   - name: Courses
   - name: Questions
   - name: Answers
@@ -40,6 +43,7 @@ paths:
         '202': {description: 인증번호 발송 요청 접수}
         '400': {$ref: '#/components/responses/BadRequest'}
         '409': {$ref: '#/components/responses/Conflict'}
+        '429': {$ref: '#/components/responses/TooManyRequests'}
   /auth/email-verifications/confirm:
     post:
       tags: [Auth]
@@ -66,6 +70,7 @@ paths:
                   verificationToken: {type: string, example: email-verification-token}
                   expiresAt: {type: string, format: date-time}
         '400': {$ref: '#/components/responses/BadRequest'}
+        '429': {$ref: '#/components/responses/TooManyRequests'}
   /auth/register:
     post:
       tags: [Auth]
@@ -112,6 +117,7 @@ paths:
           content:
             application/json:
               schema: {$ref: '#/components/schemas/Error'}
+        '429': {$ref: '#/components/responses/TooManyRequests'}
   /auth/logout:
     post:
       tags: [Auth]
@@ -130,6 +136,18 @@ paths:
             application/json:
               schema: {$ref: '#/components/schemas/UserPublic'}
         '401': {$ref: '#/components/responses/Unauthorized'}
+  /dashboard:
+    get:
+      tags: [Dashboard]
+      summary: 메인 활동 요약 조회
+      description: 메인 상단의 전체 답변 수, 이번 주 답변 그래프, 내 담당/전체 미답변 수를 현재 사용자의 공개 범위에 맞춰 반환합니다.
+      responses:
+        '200':
+          description: 역할·공개 범위가 적용된 활동 요약
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/DashboardSummary'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
   /courses:
     get:
       tags: [Courses]
@@ -139,7 +157,7 @@ paths:
         - {$ref: '#/components/parameters/SearchParam'}
         - name: professorId
           in: query
-          schema: {type: integer, format: int64}
+          schema: {type: integer, format: int64, minimum: 1}
         - name: phase
           in: query
           schema: {$ref: '#/components/schemas/CoursePhase'}
@@ -199,6 +217,7 @@ paths:
                     properties:
                       items: {type: array, items: {$ref: '#/components/schemas/SearchResult'}}
         '400': {$ref: '#/components/responses/BadRequest'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
         '404': {$ref: '#/components/responses/NotFound'}
   /courses/{courseId}/questions:
     parameters:
@@ -208,7 +227,6 @@ paths:
       summary: 과목 질문 목록
       description: 학생은 최신순, 교수님은 OPEN 우선·그룹 내 최신순입니다.
       parameters:
-        - {$ref: '#/components/parameters/CourseId'}
         - name: status
           in: query
           schema: {$ref: '#/components/schemas/QuestionStatus'}
@@ -225,6 +243,7 @@ paths:
                   - type: object
                     properties:
                       items: {type: array, items: {$ref: '#/components/schemas/QuestionSummary'}}
+        '401': {$ref: '#/components/responses/Unauthorized'}
         '404': {$ref: '#/components/responses/NotFound'}
     post:
       tags: [Questions]
@@ -241,6 +260,7 @@ paths:
             application/json:
               schema: {$ref: '#/components/schemas/QuestionDetail'}
         '400': {$ref: '#/components/responses/BadRequest'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
         '403': {$ref: '#/components/responses/Forbidden'}
         '404': {$ref: '#/components/responses/NotFound'}
   /courses/{courseId}/similar-questions:
@@ -266,6 +286,8 @@ paths:
                 properties:
                   candidates: {type: array, maxItems: 3, items: {$ref: '#/components/schemas/SimilarQuestionCandidate'}}
         '400': {$ref: '#/components/responses/BadRequest'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '404': {$ref: '#/components/responses/NotFound'}
         '503':
           description: 추천 서비스 일시 실패. 질문 등록은 가능함
           content:
@@ -296,6 +318,8 @@ paths:
                   - type: object
                     properties:
                       items: {type: array, items: {$ref: '#/components/schemas/QuestionSummary'}}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '403': {$ref: '#/components/responses/Forbidden'}
   /questions/{questionId}:
     parameters:
       - {$ref: '#/components/parameters/QuestionId'}
@@ -308,6 +332,7 @@ paths:
           content:
             application/json:
               schema: {$ref: '#/components/schemas/QuestionDetail'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
         '404': {$ref: '#/components/responses/NotFound'}
     patch:
       tags: [Questions]
@@ -324,6 +349,7 @@ paths:
             application/json:
               schema: {$ref: '#/components/schemas/QuestionDetail'}
         '400': {$ref: '#/components/responses/BadRequest'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
         '403': {$ref: '#/components/responses/Forbidden'}
         '404': {$ref: '#/components/responses/NotFound'}
         '409': {$ref: '#/components/responses/Conflict'}
@@ -335,7 +361,6 @@ paths:
       summary: 답변 목록
       description: 교수님 답변 우선, 같은 그룹 안에서는 오래된 순입니다.
       parameters:
-        - {$ref: '#/components/parameters/QuestionId'}
         - {$ref: '#/components/parameters/PageParam'}
         - {$ref: '#/components/parameters/SizeParam'}
       responses:
@@ -349,13 +374,12 @@ paths:
                   - type: object
                     properties:
                       items: {type: array, items: {$ref: '#/components/schemas/Answer'}}
+        '401': {$ref: '#/components/responses/Unauthorized'}
         '404': {$ref: '#/components/responses/NotFound'}
     post:
       tags: [Answers]
       summary: 답변 등록
       description: 활성 교육생은 모든 과목, 교수님은 담당 여부와 관계없이 답변할 수 있습니다.
-      parameters:
-        - {$ref: '#/components/parameters/QuestionId'}
       requestBody:
         required: true
         content:
@@ -372,6 +396,7 @@ paths:
             application/json:
               schema: {$ref: '#/components/schemas/Answer'}
         '400': {$ref: '#/components/responses/BadRequest'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
         '403': {$ref: '#/components/responses/Forbidden'}
         '404': {$ref: '#/components/responses/NotFound'}
   /answers/{answerId}:
@@ -382,7 +407,7 @@ paths:
         - name: answerId
           in: path
           required: true
-          schema: {type: integer, format: int64}
+          schema: {type: integer, format: int64, minimum: 1}
       requestBody:
         required: true
         content:
@@ -399,6 +424,8 @@ paths:
           content:
             application/json:
               schema: {$ref: '#/components/schemas/Answer'}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
         '403': {$ref: '#/components/responses/Forbidden'}
         '404': {$ref: '#/components/responses/NotFound'}
         '409': {$ref: '#/components/responses/Conflict'}
@@ -410,7 +437,6 @@ paths:
       summary: 과목 설명·자료 목록
       description: 사용자 공개 범위를 적용하고 전임 교수님 글을 먼저 반환합니다.
       parameters:
-        - {$ref: '#/components/parameters/CourseId'}
         - name: type
           in: query
           schema: {$ref: '#/components/schemas/PostType'}
@@ -427,13 +453,12 @@ paths:
                   - type: object
                     properties:
                       items: {type: array, items: {$ref: '#/components/schemas/PostSummary'}}
+        '401': {$ref: '#/components/responses/Unauthorized'}
         '404': {$ref: '#/components/responses/NotFound'}
     post:
       tags: [Posts]
       summary: 보충 설명 또는 학습자료 등록
-      description: 배정 교수님만 가능하며 FLOOR/CLASS 대상은 실제 담당 범위여야 합니다.
-      parameters:
-        - {$ref: '#/components/parameters/CourseId'}
+      description: 배정 교수님만 가능하며 FLOOR/CLASS 대상은 실제 담당 범위여야 합니다. MATERIAL은 multipart의 files 필드로 실제 파일을 한 개 이상 전송합니다.
       requestBody:
         required: true
         content:
@@ -446,6 +471,7 @@ paths:
             application/json:
               schema: {$ref: '#/components/schemas/PostDetail'}
         '400': {$ref: '#/components/responses/BadRequest'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
         '403': {$ref: '#/components/responses/Forbidden'}
         '404': {$ref: '#/components/responses/NotFound'}
         '413': {$ref: '#/components/responses/PayloadTooLarge'}
@@ -462,6 +488,7 @@ paths:
           content:
             application/json:
               schema: {$ref: '#/components/schemas/PostDetail'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
         '404': {$ref: '#/components/responses/NotFound'}
     patch:
       tags: [Posts]
@@ -477,6 +504,8 @@ paths:
           content:
             application/json:
               schema: {$ref: '#/components/schemas/PostDetail'}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
         '403': {$ref: '#/components/responses/Forbidden'}
         '404': {$ref: '#/components/responses/NotFound'}
         '409': {$ref: '#/components/responses/Conflict'}
@@ -487,7 +516,6 @@ paths:
       tags: [Materials]
       summary: 자료 버전 목록
       parameters:
-        - {$ref: '#/components/parameters/PostId'}
         - {$ref: '#/components/parameters/PageParam'}
         - {$ref: '#/components/parameters/SizeParam'}
       responses:
@@ -501,13 +529,12 @@ paths:
                   - type: object
                     properties:
                       items: {type: array, items: {$ref: '#/components/schemas/MaterialVersion'}}
+        '401': {$ref: '#/components/responses/Unauthorized'}
         '404': {$ref: '#/components/responses/NotFound'}
     post:
       tags: [Materials]
       summary: 학습자료 새 버전 등록
-      description: 원 게시자만 가능하며 기존 버전과 파일은 보존합니다.
-      parameters:
-        - {$ref: '#/components/parameters/PostId'}
+      description: 원 게시자만 가능하며 multipart의 files 필드로 실제 파일을 한 개 이상 전송합니다. 기존 버전과 파일은 보존합니다.
       requestBody:
         required: true
         content:
@@ -519,6 +546,7 @@ paths:
                 files:
                   type: array
                   minItems: 1
+                  description: 새 버전에 포함할 실제 파일들
                   items: {type: string, format: binary}
                 changeNote: {type: string, minLength: 1, maxLength: 2000}
                 expectedLatestVersion: {type: integer, minimum: 1}
@@ -529,6 +557,7 @@ paths:
             application/json:
               schema: {$ref: '#/components/schemas/MaterialVersion'}
         '400': {$ref: '#/components/responses/BadRequest'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
         '403': {$ref: '#/components/responses/Forbidden'}
         '404': {$ref: '#/components/responses/NotFound'}
         '409': {$ref: '#/components/responses/Conflict'}
@@ -542,7 +571,7 @@ paths:
         - name: fileId
           in: path
           required: true
-          schema: {type: integer, format: int64}
+          schema: {type: integer, format: int64, minimum: 1}
       responses:
         '200':
           description: 파일 다운로드
@@ -552,6 +581,30 @@ paths:
           content:
             application/octet-stream:
               schema: {type: string, format: binary}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '404': {$ref: '#/components/responses/NotFound'}
+  /material-versions/{versionId}/download:
+    get:
+      tags: [Materials]
+      summary: 자료 버전의 모든 파일 다운로드
+      description: 화면의 ‘모두 다운로드’에 사용하며 파일이 하나면 원본, 여러 개면 ZIP으로 스트리밍합니다.
+      parameters:
+        - name: versionId
+          in: path
+          required: true
+          schema: {type: integer, format: int64, minimum: 1}
+      responses:
+        '200':
+          description: 단일 원본 파일 또는 ZIP 묶음
+          headers:
+            Content-Disposition:
+              schema: {type: string, example: 'attachment; filename="material-v3.zip"'}
+          content:
+            application/octet-stream:
+              schema: {type: string, format: binary}
+            application/zip:
+              schema: {type: string, format: binary}
+        '401': {$ref: '#/components/responses/Unauthorized'}
         '404': {$ref: '#/components/responses/NotFound'}
   /courses/{courseId}/material-updates:
     get:
@@ -572,6 +625,8 @@ paths:
                   - type: object
                     properties:
                       items: {type: array, items: {$ref: '#/components/schemas/MaterialUpdate'}}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '404': {$ref: '#/components/responses/NotFound'}
   /posts/{postId}/read-state:
     put:
       tags: [UserStates]
@@ -586,7 +641,7 @@ paths:
               type: object
               required: [versionId]
               properties:
-                versionId: {type: integer, format: int64}
+                versionId: {type: integer, format: int64, minimum: 1}
       responses:
         '200':
           description: 갱신된 버전 확인 상태
@@ -594,6 +649,7 @@ paths:
             application/json:
               schema: {$ref: '#/components/schemas/MaterialReadState'}
         '400': {$ref: '#/components/responses/BadRequest'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
         '404': {$ref: '#/components/responses/NotFound'}
   /post-updates:
     get:
@@ -614,6 +670,8 @@ paths:
                 required: [items]
                 properties:
                   items: {type: array, items: {$ref: '#/components/schemas/PostUpdateNotice'}}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '403': {$ref: '#/components/responses/Forbidden'}
   /posts/{postId}/user-state/read:
     put:
       tags: [UserStates]
@@ -626,6 +684,7 @@ paths:
           content:
             application/json:
               schema: {$ref: '#/components/schemas/PostUserState'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
         '404': {$ref: '#/components/responses/NotFound'}
   /posts/{postId}/user-state/dismiss:
     put:
@@ -639,6 +698,7 @@ paths:
           content:
             application/json:
               schema: {$ref: '#/components/schemas/PostUserState'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
         '404': {$ref: '#/components/responses/NotFound'}
   /admin/users:
     get:
@@ -668,6 +728,7 @@ paths:
                   - type: object
                     properties:
                       items: {type: array, items: {$ref: '#/components/schemas/UserAdmin'}}
+        '401': {$ref: '#/components/responses/Unauthorized'}
         '403': {$ref: '#/components/responses/Forbidden'}
     post:
       tags: [AdminUsers]
@@ -684,6 +745,7 @@ paths:
             application/json:
               schema: {$ref: '#/components/schemas/UserAdmin'}
         '400': {$ref: '#/components/responses/BadRequest'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
         '403': {$ref: '#/components/responses/Forbidden'}
         '409': {$ref: '#/components/responses/Conflict'}
   /admin/users/{userId}:
@@ -704,18 +766,20 @@ paths:
             application/json:
               schema: {$ref: '#/components/schemas/UserAdmin'}
         '400': {$ref: '#/components/responses/BadRequest'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
         '403': {$ref: '#/components/responses/Forbidden'}
         '404': {$ref: '#/components/responses/NotFound'}
         '409': {$ref: '#/components/responses/Conflict'}
   /admin/courses:
     post:
       tags: [AdminCourses]
-      summary: 과목과 첫 층별 세션 등록
+      summary: 과목·층별 일정·반별 교수님 배정 등록
+      description: 한 요청의 트랜잭션으로 과목, 4·5층 일정, 10개 반 배정을 생성합니다. 어느 하나라도 실패하면 모두 롤백합니다.
       requestBody:
         required: true
         content:
           application/json:
-            schema: {$ref: '#/components/schemas/AdminCourseWriteRequest'}
+            schema: {$ref: '#/components/schemas/AdminCourseCreateRequest'}
       responses:
         '201':
           description: 생성된 과목
@@ -723,19 +787,20 @@ paths:
             application/json:
               schema: {$ref: '#/components/schemas/CourseDetail'}
         '400': {$ref: '#/components/responses/BadRequest'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
         '403': {$ref: '#/components/responses/Forbidden'}
         '409': {$ref: '#/components/responses/Conflict'}
   /admin/courses/{courseId}:
     patch:
       tags: [AdminCourses]
-      summary: 과목과 층별 세션 수정
+      summary: 과목·층별 일정 수정
       parameters:
         - {$ref: '#/components/parameters/CourseId'}
       requestBody:
         required: true
         content:
           application/json:
-            schema: {$ref: '#/components/schemas/AdminCourseWriteRequest'}
+            schema: {$ref: '#/components/schemas/AdminCourseUpdateRequest'}
       responses:
         '200':
           description: 수정된 과목
@@ -743,6 +808,7 @@ paths:
             application/json:
               schema: {$ref: '#/components/schemas/CourseDetail'}
         '400': {$ref: '#/components/responses/BadRequest'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
         '403': {$ref: '#/components/responses/Forbidden'}
         '404': {$ref: '#/components/responses/NotFound'}
         '409': {$ref: '#/components/responses/Conflict'}
@@ -750,7 +816,7 @@ paths:
     put:
       tags: [AdminCourses]
       summary: 교수님 배정 전체 저장
-      description: 4층·5층 전임 교수님을 각 1명 지정하고, 1~10반 실습 교수님을 각 1명 지정해 전체 배정을 교체합니다.
+      description: 1~10반에 서로 다른 교수님을 한 분씩 배정합니다. 1~5반 중 정확히 1명, 6~10반 중 정확히 1명은 전임이며 나머지 8명은 실습 교수님이어야 합니다.
       parameters:
         - {$ref: '#/components/parameters/CourseId'}
       requestBody:
@@ -759,20 +825,14 @@ paths:
           application/json:
             schema:
               type: object
-              required: [leads, practicals, expectedRevision]
+              required: [assignments, expectedRevision]
               properties:
-                leads:
-                  type: array
-                  minItems: 2
-                  maxItems: 2
-                  items: {$ref: '#/components/schemas/FloorLeadAssignmentWrite'}
-                  description: 4층과 5층 항목 각 1개
-                practicals:
+                assignments:
                   type: array
                   minItems: 10
                   maxItems: 10
-                  items: {$ref: '#/components/schemas/ClassPracticeAssignmentWrite'}
-                  description: 1~10반 항목 각 1개
+                  items: {$ref: '#/components/schemas/ClassInstructorAssignmentWrite'}
+                  description: 1~10반 항목 각 1개, professorId는 모두 달라야 하며 층별 LEAD는 정확히 1개
                 expectedRevision: {type: integer, minimum: 1}
       responses:
         '200':
@@ -781,6 +841,7 @@ paths:
             application/json:
               schema: {$ref: '#/components/schemas/CourseDetail'}
         '400': {$ref: '#/components/responses/BadRequest'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
         '403': {$ref: '#/components/responses/Forbidden'}
         '404': {$ref: '#/components/responses/NotFound'}
         '409': {$ref: '#/components/responses/Conflict'}
@@ -797,7 +858,7 @@ paths:
           schema: {type: boolean}
         - name: courseId
           in: query
-          schema: {type: integer, format: int64}
+          schema: {type: integer, format: int64, minimum: 1}
         - {$ref: '#/components/parameters/PageParam'}
         - {$ref: '#/components/parameters/SizeParam'}
       responses:
@@ -811,6 +872,7 @@ paths:
                   - type: object
                     properties:
                       items: {type: array, items: {$ref: '#/components/schemas/AdminContentItem'}}
+        '401': {$ref: '#/components/responses/Unauthorized'}
         '403': {$ref: '#/components/responses/Forbidden'}
   /admin/content/{contentType}/{contentId}/visibility:
     patch:
@@ -824,7 +886,7 @@ paths:
         - name: contentId
           in: path
           required: true
-          schema: {type: integer, format: int64}
+          schema: {type: integer, format: int64, minimum: 1}
       requestBody:
         required: true
         content:
@@ -843,6 +905,7 @@ paths:
             application/json:
               schema: {$ref: '#/components/schemas/AdminContentItem'}
         '400': {$ref: '#/components/responses/BadRequest'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
         '403': {$ref: '#/components/responses/Forbidden'}
         '404': {$ref: '#/components/responses/NotFound'}
         '409': {$ref: '#/components/responses/Conflict'}
@@ -922,6 +985,14 @@ components:
       content:
         application/json:
           schema: {$ref: '#/components/schemas/Error'}
+    TooManyRequests:
+      description: 인증번호 발송·확인 또는 로그인 시도 횟수 제한 초과
+      headers:
+        Retry-After:
+          schema: {type: integer, minimum: 1, example: 60}
+      content:
+        application/json:
+          schema: {$ref: '#/components/schemas/Error'}
   schemas:
     Role:
       type: string
@@ -950,17 +1021,38 @@ components:
       properties:
         code: {type: string, example: VALIDATION_ERROR}
         message: {type: string, example: 입력값을 확인해주세요.}
+        traceId: {type: string, nullable: true, description: 서버 로그 추적 ID}
         fieldErrors:
           type: object
           additionalProperties: {type: string}
           example: {title: 제목을 입력해주세요.}
     PageMeta:
       type: object
-      required: [page, size, total]
+      required: [page, size, total, totalPages, hasNext]
       properties:
         page: {type: integer, minimum: 1, example: 1}
         size: {type: integer, minimum: 1, example: 20}
         total: {type: integer, minimum: 0, example: 42}
+        totalPages: {type: integer, minimum: 0, example: 3}
+        hasNext: {type: boolean, example: true}
+    DailyAnswerCount:
+      type: object
+      required: [date, answerCount]
+      properties:
+        date: {type: string, format: date}
+        answerCount: {type: integer, minimum: 0}
+    DashboardSummary:
+      type: object
+      required: [totalAnswerCount, myOpenQuestionCount, allOpenQuestionCount, weeklyAnswerCounts]
+      properties:
+        totalAnswerCount: {type: integer, minimum: 0, description: 현재 사용자가 볼 수 있는 누적 답변 수}
+        myOpenQuestionCount: {type: integer, minimum: 0, description: 교수님은 담당 과목, 학생은 수강 가능 과목의 미답변 질문 수}
+        allOpenQuestionCount: {type: integer, minimum: 0, description: 현재 사용자가 볼 수 있는 모든 미답변 질문 수}
+        weeklyAnswerCounts:
+          type: array
+          minItems: 7
+          maxItems: 7
+          items: {$ref: '#/components/schemas/DailyAnswerCount'}
     LoginRequest:
       type: object
       required: [email, password]
@@ -1012,7 +1104,7 @@ components:
       type: object
       required: [id, email, name, role, status]
       properties:
-        id: {type: integer, format: int64, example: 1}
+        id: {type: integer, format: int64, minimum: 1, example: 1}
         email: {type: string, format: email, example: haneul@skala.example}
         name: {type: string, example: 김하늘}
         role: {$ref: '#/components/schemas/Role'}
@@ -1027,6 +1119,12 @@ components:
             pCode: {type: string, pattern: '^P[0-9]{3}$', nullable: true}
             employeeNo: {type: string, pattern: '^T[0-9]{4}$', nullable: true}
             emailVerified: {type: boolean}
+            revision: {type: integer, minimum: 1}
+            approvedBy: {nullable: true, allOf: [{$ref: '#/components/schemas/AuthorPublic'}]}
+            approvedAt: {type: string, format: date-time, nullable: true}
+            rejectedReason: {type: string, maxLength: 500, nullable: true}
+            deactivatedAt: {type: string, format: date-time, nullable: true}
+            lastLoginAt: {type: string, format: date-time, nullable: true}
             createdAt: {type: string, format: date-time}
             updatedAt: {type: string, format: date-time}
     CourseSession:
@@ -1038,38 +1136,33 @@ components:
         endDate: {type: string, format: date}
     InstructorAssignment:
       type: object
-      required: [professor, instructorKind, floors, classNumbers]
+      required: [professor, instructorKind, floor, classNumber]
       properties:
         professor: {$ref: '#/components/schemas/UserPublic'}
         instructorKind: {$ref: '#/components/schemas/InstructorKind'}
-        floors:
+        floor: {type: integer, enum: [4, 5]}
+        classNumber: {type: integer, minimum: 1, maximum: 10}
+        allowedVisibilityScopes:
           type: array
           uniqueItems: true
-          items: {type: integer, enum: [4, 5]}
-        classNumbers:
-          type: array
-          uniqueItems: true
-          items: {type: integer, minimum: 1, maximum: 10}
-    FloorLeadAssignmentWrite:
+          description: 서버가 배정으로 계산한 게시 가능 범위. LEAD는 ALL/FLOOR/CLASS, PRACTICE는 ALL/CLASS
+          items: {$ref: '#/components/schemas/VisibilityScope'}
+    ClassInstructorAssignmentWrite:
       type: object
-      required: [floorNumber, professorId]
-      properties:
-        floorNumber: {type: integer, enum: [4, 5]}
-        professorId: {type: integer, format: int64}
-    ClassPracticeAssignmentWrite:
-      type: object
-      required: [classNumber, professorId]
+      required: [classNumber, professorId, instructorKind]
       properties:
         classNumber: {type: integer, minimum: 1, maximum: 10}
-        professorId: {type: integer, format: int64}
+        professorId: {type: integer, format: int64, minimum: 1}
+        instructorKind: {$ref: '#/components/schemas/InstructorKind'}
     CourseSummary:
       type: object
-      required: [id, code, title, phase, displayPeriod, leadProfessors, isMine]
+      required: [id, code, title, colorKey, phase, displayPeriod, leadProfessors, isMine]
       properties:
-        id: {type: integer, format: int64}
+        id: {type: integer, format: int64, minimum: 1}
         code: {type: string, example: WEB-401}
         title: {type: string, example: 웹 서비스 개발 Mini-Project}
         description: {type: string, nullable: true}
+        colorKey: {type: string, enum: [green, orange, blue, violet], example: orange}
         phase: {$ref: '#/components/schemas/CoursePhase'}
         displayPeriod: {type: string, example: '4층 · 09.08—09.10'}
         leadProfessors: {type: array, items: {$ref: '#/components/schemas/UserPublic'}}
@@ -1084,7 +1177,7 @@ components:
             sessions: {type: array, items: {$ref: '#/components/schemas/CourseSession'}}
             visibleAssignments:
               type: array
-              description: 학생에게는 해당 층 전임과 자기 반 실습 교수만 반환
+              description: 학생에게는 해당 층 전임 교수님과 자기 반 담당 교수님만 중복 없이 반환하며, 교수님·관리자에게는 필요한 전체 배정을 반환
               items: {$ref: '#/components/schemas/InstructorAssignment'}
             permissions:
               type: object
@@ -1097,7 +1190,7 @@ components:
       type: object
       required: [id, name, role]
       properties:
-        id: {type: integer, format: int64}
+        id: {type: integer, format: int64, minimum: 1}
         name: {type: string}
         role: {$ref: '#/components/schemas/Role'}
         classNumber: {type: integer, nullable: true, minimum: 1, maximum: 10}
@@ -1105,7 +1198,7 @@ components:
       type: object
       required: [id, course, author, title, bodyExcerpt, status, answerCount, createdAt]
       properties:
-        id: {type: integer, format: int64}
+        id: {type: integer, format: int64, minimum: 1}
         course: {$ref: '#/components/schemas/CourseSummary'}
         author: {$ref: '#/components/schemas/AuthorPublic'}
         title: {type: string, minLength: 1, maxLength: 150}
@@ -1134,7 +1227,7 @@ components:
       properties:
         title: {type: string, minLength: 1, maxLength: 150}
         body: {type: string, minLength: 1, maxLength: 20000}
-        relatedPostId: {type: integer, format: int64, nullable: true}
+        relatedPostId: {type: integer, format: int64, minimum: 1, nullable: true}
     QuestionUpdateRequest:
       type: object
       required: [expectedRevision]
@@ -1154,7 +1247,7 @@ components:
       type: object
       required: [id, title, excerpt, status, answerCount]
       properties:
-        id: {type: integer, format: int64}
+        id: {type: integer, format: int64, minimum: 1}
         title: {type: string}
         excerpt: {type: string}
         status: {$ref: '#/components/schemas/QuestionStatus'}
@@ -1163,8 +1256,8 @@ components:
       type: object
       required: [id, questionId, author, authorRoleAtCreation, body, revision, createdAt]
       properties:
-        id: {type: integer, format: int64}
-        questionId: {type: integer, format: int64}
+        id: {type: integer, format: int64, minimum: 1}
+        questionId: {type: integer, format: int64, minimum: 1}
         author: {$ref: '#/components/schemas/AuthorPublic'}
         authorRoleAtCreation: {type: string, enum: [STUDENT, PROFESSOR]}
         body: {type: string, minLength: 1, maxLength: 10000}
@@ -1183,17 +1276,18 @@ components:
       type: object
       required: [id, fileName, fileSizeBytes, mimeType, displayOrder]
       properties:
-        id: {type: integer, format: int64}
+        id: {type: integer, format: int64, minimum: 1}
         fileName: {type: string}
         fileSizeBytes: {type: integer, format: int64, minimum: 0}
         mimeType: {type: string}
+        checksumSha256: {type: string, pattern: '^[a-fA-F0-9]{64}$', nullable: true}
         displayOrder: {type: integer, minimum: 1}
         downloadUrl: {type: string, format: uri}
     MaterialVersion:
       type: object
       required: [id, versionNumber, files, changeNote, createdBy, createdAt]
       properties:
-        id: {type: integer, format: int64}
+        id: {type: integer, format: int64, minimum: 1}
         versionNumber: {type: integer, minimum: 1}
         files: {type: array, minItems: 1, items: {$ref: '#/components/schemas/MaterialFile'}}
         changeNote: {type: string, minLength: 1, maxLength: 2000}
@@ -1203,16 +1297,16 @@ components:
       type: object
       required: [postId, hasUnseenVersion]
       properties:
-        postId: {type: integer, format: int64}
-        lastSeenVersionId: {type: integer, format: int64, nullable: true}
+        postId: {type: integer, format: int64, minimum: 1}
+        lastSeenVersionId: {type: integer, format: int64, minimum: 1, nullable: true}
         seenAt: {type: string, format: date-time, nullable: true}
         hasUnseenVersion: {type: boolean}
     PostSummary:
       type: object
       required: [id, courseId, author, instructorKind, type, visibility, title, revision, updatedAt]
       properties:
-        id: {type: integer, format: int64}
-        courseId: {type: integer, format: int64}
+        id: {type: integer, format: int64, minimum: 1}
+        courseId: {type: integer, format: int64, minimum: 1}
         author: {$ref: '#/components/schemas/AuthorPublic'}
         instructorKind: {$ref: '#/components/schemas/InstructorKind'}
         type: {$ref: '#/components/schemas/PostType'}
@@ -1227,6 +1321,7 @@ components:
       allOf:
         - {$ref: '#/components/schemas/PostSummary'}
         - type: object
+          required: [body, canEdit, canAddVersion]
           properties:
             body: {type: string, nullable: true, maxLength: 20000}
             readState: {nullable: true, allOf: [{$ref: '#/components/schemas/MaterialReadState'}]}
@@ -1236,7 +1331,7 @@ components:
       type: object
       required: [id, title, type, isVisible]
       properties:
-        id: {type: integer, format: int64}
+        id: {type: integer, format: int64, minimum: 1}
         title: {type: string}
         type: {$ref: '#/components/schemas/PostType'}
         isVisible: {type: boolean}
@@ -1251,6 +1346,8 @@ components:
         visibilityTarget: {type: integer, nullable: true, description: 'FLOOR이면 4/5, CLASS이면 1~10'}
         files:
           type: array
+          minItems: 1
+          description: MATERIAL일 때 필수인 실제 업로드 파일들. EXPLANATION에는 전송하지 않습니다.
           items: {type: string, format: binary}
     PostUpdateRequest:
       type: object
@@ -1268,8 +1365,8 @@ components:
         title: {type: string}
         excerpt: {type: string}
         author: {$ref: '#/components/schemas/AuthorPublic'}
-        targetId: {type: integer, format: int64}
-        matchedAnswerId: {type: integer, format: int64, nullable: true}
+        targetId: {type: integer, format: int64, minimum: 1}
+        matchedAnswerId: {type: integer, format: int64, minimum: 1, nullable: true}
     MaterialUpdate:
       type: object
       required: [post, latestVersion, hasUnseenVersion]
@@ -1281,7 +1378,7 @@ components:
       type: object
       required: [postId, isRead, isDismissed]
       properties:
-        postId: {type: integer, format: int64}
+        postId: {type: integer, format: int64, minimum: 1}
         isRead: {type: boolean}
         readAt: {type: string, format: date-time, nullable: true}
         isDismissed: {type: boolean}
@@ -1306,25 +1403,46 @@ components:
         initialPassword: {type: string, format: password, minLength: 8, writeOnly: true}
     AdminUserUpdateRequest:
       type: object
-      minProperties: 1
+      required: [expectedRevision]
+      minProperties: 2
       properties:
         name: {type: string, minLength: 1, maxLength: 100}
         classNumber: {type: integer, minimum: 1, maximum: 10, nullable: true}
         status: {$ref: '#/components/schemas/UserStatus'}
-    AdminCourseWriteRequest:
+        rejectedReason: {type: string, maxLength: 500, nullable: true}
+        expectedRevision: {type: integer, minimum: 1}
+    AdminCourseBaseRequest:
       type: object
       required: [title, sessions]
       properties:
         title: {type: string, minLength: 1, maxLength: 150}
+        colorKey: {type: string, enum: [green, orange, blue, violet], default: green}
         sessions: {type: array, minItems: 2, maxItems: 2, items: {$ref: '#/components/schemas/CourseSession'}, description: 4층과 5층 일정 각 1개}
-        expectedRevision: {type: integer, minimum: 1, nullable: true}
+        assignments:
+          type: array
+          minItems: 10
+          maxItems: 10
+          description: 1~10반 항목 각 1개. 교수님 10명은 서로 달라야 하며 층별 LEAD는 정확히 1명
+          items: {$ref: '#/components/schemas/ClassInstructorAssignmentWrite'}
+    AdminCourseCreateRequest:
+      allOf:
+        - {$ref: '#/components/schemas/AdminCourseBaseRequest'}
+        - type: object
+          required: [assignments]
+    AdminCourseUpdateRequest:
+      allOf:
+        - {$ref: '#/components/schemas/AdminCourseBaseRequest'}
+        - type: object
+          required: [expectedRevision]
+          properties:
+            expectedRevision: {type: integer, minimum: 1}
     AdminContentItem:
       type: object
       required: [id, type, courseId, titleOrExcerpt, isHidden, revision]
       properties:
-        id: {type: integer, format: int64}
+        id: {type: integer, format: int64, minimum: 1}
         type: {type: string, enum: [QUESTION, ANSWER, POST]}
-        courseId: {type: integer, format: int64}
+        courseId: {type: integer, format: int64, minimum: 1}
         titleOrExcerpt: {type: string}
         author: {$ref: '#/components/schemas/AuthorPublic'}
         isHidden: {type: boolean}
