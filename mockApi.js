@@ -1,26 +1,15 @@
-const KEY = "skala-knowledge-v8";
+const KEY = "skala-knowledge-v9-ui";
+const LEGACY_KEY = "skala-knowledge-v8";
 
 const initial = {
   users: [
-    { id: 1, password: "skala1234", pCode:"P001", email:"haneul@skala.example", name: "김하늘", role: "STUDENT", classNumber: 1, floor: 4, status:"ACTIVE", emailVerified:true },
-    { id: 2, password: "skala1234", pCode:"P104", email:"doyun@skala.example", name: "박도윤", role: "STUDENT", classNumber: 4, floor: 4, status:"ACTIVE", emailVerified:true },
-    { id: 5, password: "skala1234", pCode:"P206", email:"garam@skala.example", name: "윤가람", role: "STUDENT", classNumber: 6, floor: 5, status:"ACTIVE", emailVerified:true },
-    { id: 3, password: "skala1234", employeeNo:"T1001", email:"jeongyeol@skala.example", name: "백정열", role: "PROFESSOR", classNumber: null, floor: null, status:"ACTIVE", emailVerified:true },
-    { id: 6, password: "skala1234", employeeNo:"T1002", email:"gyeongnan@skala.example", name:"김경난", role:"PROFESSOR", classNumber:null, floor:null, status:"ACTIVE", emailVerified:true },
-    { id: 7, password: "skala1234", employeeNo:"T1003", email:"seongyeol@skala.example", name:"임성열", role:"PROFESSOR", classNumber:null, floor:null, status:"ACTIVE", emailVerified:true },
-    { id: 4, password: "skala1234", email:"admin@skala.example", name:"최관리", role:"ADMIN", classNumber:null, floor:null, status:"ACTIVE", emailVerified:true }
-  ],
-  roster: [
-    {pCode:"P001",name:"김하늘",classNumber:1,email:"haneul@skala.example"},
-    {pCode:"P104",name:"박도윤",classNumber:4,email:"doyun@skala.example"},
-    {pCode:"P206",name:"윤가람",classNumber:6,email:"garam@skala.example"},
-    {pCode:"P308",name:"정나래",classNumber:8,email:"narae@skala.example"}
-  ],
-  staffDirectory: [
-    {employeeNo:"T1001",name:"백정열",email:"jeongyeol@skala.example"},
-    {employeeNo:"T1002",name:"김경난",email:"gyeongnan@skala.example"},
-    {employeeNo:"T1003",name:"임성열",email:"seongyeol@skala.example"},
-    {employeeNo:"T1010",name:"이미래",email:"mirae@skala.example"}
+    { id: 1, password: "skala1234", pCode:"P001", email:"haneul@skala.example", name: "김하늘", role: "STUDENT", classNumber: 1, floor: 4, status:"ACTIVE" },
+    { id: 2, password: "skala1234", pCode:"P104", email:"doyun@skala.example", name: "박도윤", role: "STUDENT", classNumber: 4, floor: 4, status:"ACTIVE" },
+    { id: 5, password: "skala1234", pCode:"P206", email:"garam@skala.example", name: "윤가람", role: "STUDENT", classNumber: 6, floor: 5, status:"ACTIVE" },
+    { id: 3, password: "skala1234", employeeNo:"T1001", email:"jeongyeol@skala.example", name: "백정열", role: "PROFESSOR", classNumber: null, floor: null, status:"ACTIVE" },
+    { id: 6, password: "skala1234", employeeNo:"T1002", email:"gyeongnan@skala.example", name:"김경난", role:"PROFESSOR", classNumber:null, floor:null, status:"ACTIVE" },
+    { id: 7, password: "skala1234", employeeNo:"T1003", email:"seongyeol@skala.example", name:"임성열", role:"PROFESSOR", classNumber:null, floor:null, status:"ACTIVE" },
+    { id: 4, password: "skala1234", email:"admin@skala.example", name:"최관리", role:"ADMIN", classNumber:null, floor:null, status:"ACTIVE" }
   ],
   sessionUserId: null,
   courses: [
@@ -41,15 +30,15 @@ const initial = {
     { id:9,title:"LLM과 Transformer 아키텍처",code:"AI-305",description:"Transformer 구조와 LLM의 학습·추론 원리를 이해합니다.",phase:"ENDED",period:"4층 07.23—07.24 · 5층 07.30—07.31",sessions:[{floor:4,startDate:"2026-07-23",endDate:"2026-07-24"},{floor:5,startDate:"2026-07-30",endDate:"2026-07-31"}],instructors:["임성열","박병선","김영희","박창렴","김범준"],color:"violet",assignments:[{professor:"임성열",kind:"LEAD",floors:[4],classes:[1,2,3,4,5]}] }
   ],
   questions: [
-    { id: 1, courseId: 1, authorId: 1, title: "UI 흐름도에는 예외 화면도 모두 넣어야 하나요?", body: "정상 흐름 외에 빈 목록과 오류 상태를 별도 화면으로 그려야 하는지, 설명으로 표시해도 되는지 궁금합니다.", status: "OPEN", tags: ["UI 흐름", "와이어프레임"], createdAt: "2026-09-08T01:24:00Z", relatedPostId: null },
-    { id: 2, courseId: 1, authorId: 2, title: "OpenAPI 응답 스키마와 DB 컬럼 이름이 달라도 되나요?", body: "API는 camelCase, DB는 snake_case를 쓰고 있는데 문서에서 매핑만 분명하면 괜찮은지 궁금합니다.", status: "RESOLVED", tags: ["OpenAPI", "DBML"], createdAt: "2026-09-08T02:10:00Z", relatedPostId: 3 },
-    { id: 3, courseId: 1, authorId: 1, title: "화면별 API 목록은 어느 정도로 상세해야 하나요?", body: "버튼을 눌렀을 때 호출되는 API와 오류 응답까지 화면 설명에 연결해야 할까요?", status: "OPEN", tags: ["API", "설계"], createdAt: "2026-09-08T03:30:00Z", relatedPostId: null },
-    { id: 4, courseId: 2, authorId: 2, title: "Pod가 CrashLoopBackOff일 때 확인 순서", body: "로그와 이벤트 중 무엇을 먼저 보고 원인을 좁히는 게 좋은가요?", status: "RESOLVED", tags: ["Kubernetes"], createdAt: "2026-08-18T02:00:00Z", relatedPostId: 4 }
+    { id: 1, courseId: 1, authorId: 1, title: "UI 흐름도에는 예외 화면도 모두 넣어야 하나요?", body: "정상 흐름 외에 빈 목록과 오류 상태를 별도 화면으로 그려야 하는지, 설명으로 표시해도 되는지 궁금합니다.", status: "OPEN", tags: ["UI 흐름", "와이어프레임"], createdAt: "2026-09-08T01:24:00Z" },
+    { id: 2, courseId: 1, authorId: 2, title: "OpenAPI 응답 스키마와 DB 컬럼 이름이 달라도 되나요?", body: "API는 camelCase, DB는 snake_case를 쓰고 있는데 문서에서 매핑만 분명하면 괜찮은지 궁금합니다.", status: "RESOLVED", tags: ["OpenAPI", "DBML"], createdAt: "2026-09-08T02:10:00Z" },
+    { id: 3, courseId: 1, authorId: 1, title: "화면별 API 목록은 어느 정도로 상세해야 하나요?", body: "버튼을 눌렀을 때 호출되는 API와 오류 응답까지 화면 설명에 연결해야 할까요?", status: "OPEN", tags: ["API", "설계"], createdAt: "2026-09-08T03:30:00Z" },
+    { id: 4, courseId: 2, authorId: 2, title: "Pod가 CrashLoopBackOff일 때 확인 순서", body: "로그와 이벤트 중 무엇을 먼저 보고 원인을 좁히는 게 좋은가요?", status: "RESOLVED", tags: ["Kubernetes"], createdAt: "2026-08-18T02:00:00Z" }
   ],
   answers: [
-    { id: 1, questionId: 1, authorId: 2, roleAtCreation: "STUDENT", body: "저희는 정상 흐름 안에 빈 상태를 작게 붙이고, 권한 오류처럼 흐름이 달라지는 경우만 별도 화면으로 정리했어요.", createdAt: "2026-09-08T02:02:00Z" },
-    { id: 2, questionId: 1, authorId: 3, roleAtCreation: "PROFESSOR", body: "모든 오류를 독립 화면으로 만들 필요는 없습니다. 다만 사용자의 다음 행동이 달라지는 주요 예외는 와이어프레임이나 주석으로 분명히 보여주세요.", createdAt: "2026-09-08T03:40:00Z" },
-    { id: 3, questionId: 2, authorId: 3, roleAtCreation: "PROFESSOR", body: "가능합니다. JSON의 camelCase와 DB의 snake_case를 일관되게 사용하고 변환 규칙을 명세에 한 번 명확히 기록하면 됩니다.", createdAt: "2026-09-08T04:10:00Z" }
+    { id: 1, questionId: 1, authorId: 2, body: "저희는 정상 흐름 안에 빈 상태를 작게 붙이고, 권한 오류처럼 흐름이 달라지는 경우만 별도 화면으로 정리했어요.", createdAt: "2026-09-08T02:02:00Z" },
+    { id: 2, questionId: 1, authorId: 3, body: "모든 오류를 독립 화면으로 만들 필요는 없습니다. 다만 사용자의 다음 행동이 달라지는 주요 예외는 와이어프레임이나 주석으로 분명히 보여주세요.", createdAt: "2026-09-08T03:40:00Z" },
+    { id: 3, questionId: 2, authorId: 3, body: "가능합니다. JSON의 camelCase와 DB의 snake_case를 일관되게 사용하고 변환 규칙을 명세에 한 번 명확히 기록하면 됩니다.", createdAt: "2026-09-08T04:10:00Z" }
   ],
   posts: [
     { id: 1, courseId: 1, authorId: 3, instructorKind:"LEAD", visibility:{scope:"ALL",target:null}, type: "MATERIAL", title: "웹 서비스 설계 Mini-Project 가이드", body: "서비스 정의, UI 흐름, API와 데이터 모델 산출물 작성 가이드", updatedAt: "2026-09-08T00:30:00Z", versions: [
@@ -64,15 +53,30 @@ const initial = {
     ,{ id: 6, courseId: 9, authorId: 7, instructorKind:"LEAD", visibility:{scope:"ALL",target:null}, type:"EXPLANATION", title:"LLM과 비전 모델은 어떻게 다를까?", body:"판별형·생성형 비전 모델과 LLM의 구조적 차이, 그리고 Physical AI까지 정리한 보충 설명입니다.", sourceFile:"/data/보충자료 예시.txt", updatedAt:"2026-09-08T07:10:00Z" }
     ,{ id: 7, courseId: 5, authorId: 7, instructorKind:"LEAD", visibility:{scope:"ALL",target:null}, type:"EXPLANATION", title:"애자일과 MSA, 왜 함께 배우는 걸까?", body:"그동안 모놀리식 애플리케이션을 중심으로 개발해왔다면 MSA는 단순히 서비스를 잘게 나누는 기술처럼 보일 수 있습니다. 하지만 실제 현장에서는 조직이 빠르게 학습하고 독립적으로 배포하기 위한 운영 방식까지 함께 바뀌어야 합니다. 그래서 MSA는 애자일 방법론과 떼어놓고 이해하기 어렵습니다.\n\n1. 애자일: 작게 만들고 빠르게 검증하는 방식\n애자일의 핵심은 문서를 줄이는 것이 아니라, 큰 요구사항을 작은 단위로 나눠 사용자 피드백을 짧은 주기로 반영하는 것입니다. 백로그를 우선순위화하고 스프린트마다 동작 가능한 결과를 만들며, 회고를 통해 다음 작업 방식을 개선합니다.\n\n2. MSA: 팀이 독립적으로 변경하고 배포할 수 있는 구조\n마이크로서비스는 업무 경계를 기준으로 서비스를 나누고 각 서비스가 자신의 데이터와 배포 주기를 책임지게 합니다. 한 서비스의 변경이 전체 배포로 이어지지 않는 장점이 있지만, API Gateway·인증·서비스 디스커버리·메시징·관측성처럼 분산 시스템의 복잡성이 추가됩니다.\n\n3. 실습 자료를 보는 순서\n먼저 교재로 애자일과 MSA의 목적을 잡고, 가이드1에서 실습 흐름을 확인한 뒤 가이드2의 코드 템플릿 구조를 살펴보세요. 이후 msa-lecture.zip을 실행하고, 분할 이미지 파일(part.aa~ac)은 하나로 합친 뒤 Docker 이미지로 불러옵니다. docker-compose.local.yml은 API Gateway, Auth Server, Eureka, Kafka 등 공통 인프라를 한 번에 준비할 때 사용합니다.\n\n마무리\n애자일은 변화에 대응하는 일의 방식이고, MSA는 그 방식을 기술적으로 뒷받침하는 선택지입니다. 서비스를 많이 나누는 것보다 팀 경계, 데이터 소유권, 독립 배포 필요성을 먼저 확인한 뒤 적절한 크기로 설계하는 것이 중요합니다.", updatedAt:"2026-09-08T08:00:00Z" }
   ],
-  reads: { "1:1": 2 },
-  noticeReads: {},
-  noticeDismissals: {},
-  emailVerifications: {}
+  postUserStates: { "1:1": {postId:1,lastSeenVersionId:102,isRead:false,isDismissed:false} }
 };
 
 const clone = value => JSON.parse(JSON.stringify(value));
 const delay = (value, ms = 90) => new Promise(resolve => setTimeout(() => resolve(clone(value)), ms));
-const load = () => { try { return JSON.parse(localStorage.getItem(KEY)) || clone(initial); } catch { return clone(initial); } };
+// Preserve prior demo work while removing the retired authentication/state fields.
+const simplify = d => {
+ d.postUserStates ||= {};
+ for(const key of new Set([...Object.keys(d.reads||{}),...Object.keys(d.noticeReads||{}),...Object.keys(d.noticeDismissals||{})])){
+  const postId=Number(key.split(":")[1]),p=d.posts.find(p=>p.id===postId);
+  d.postUserStates[key] ||= {postId,lastSeenVersionId:p?.versions?.find(v=>v.number===d.reads?.[key])?.id||null,isRead:!!d.noticeReads?.[key],isDismissed:!!d.noticeDismissals?.[key]};
+ }
+ for(const key of ['reads','noticeReads','noticeDismissals','emailVerifications','roster','staffDirectory'])delete d[key];
+ for(const u of d.users){for(const key of ['emailVerified','emailVerificationToken','revision','approvedBy','approvedAt','rejectedReason','deactivatedAt','lastLoginAt','createdAt','updatedAt'])delete u[key];u.floor=u.role==='STUDENT'?(u.classNumber<=5?4:5):null}
+ for(const q of d.questions)for(const key of ['relatedPostId','revision','resolvedAt','updatedAt','isHidden','hiddenReason','hiddenBy','hiddenAt'])delete q[key];
+ for(const a of d.answers)for(const key of ['roleAtCreation','revision','updatedAt','isHidden','hiddenReason','hiddenBy','hiddenAt'])delete a[key];
+ // Seeded teaching names need user IDs for the same FK contract as the API.
+ const professors=new Set(d.courses.flatMap(c=>[...(c.instructors||[]),...(c.assignments||[]).map(a=>a.professor)]));
+ for(const name of professors)if(!d.users.some(u=>u.role==='PROFESSOR'&&u.name===name)){const id=Math.max(...d.users.map(u=>u.id),0)+1;d.users.push({id,name,email:`professor-${id}@skala.example`,employeeNo:`T${String(8000+id)}`,password:'skala1234',role:'PROFESSOR',status:'ACTIVE',classNumber:null,floor:null})}
+ for(const c of d.courses)for(const a of c.assignments||[])a.professorId ||= d.users.find(u=>u.role==='PROFESSOR'&&u.name===a.professor)?.id;
+ return d;
+};
+const load = () => {try{return simplify(JSON.parse(localStorage.getItem(KEY)||localStorage.getItem(LEGACY_KEY))||clone(initial))}catch{return simplify(clone(initial))}};
+
 const save = data => localStorage.setItem(KEY, JSON.stringify(data));
 const normalizeFiles = files => (files || []).map(file => ({
   name: file.name,
@@ -90,23 +94,50 @@ const formatFileSize = files => {
 
 export const api = {
   async login(email, password) { const d=load(); const normalized=email.trim().toLowerCase();const u=d.users.find(x=>x.email?.toLowerCase()===normalized&&x.password===password); if(!u) throw new Error("이메일 또는 비밀번호를 확인해주세요."); if(u.status==="PENDING")throw new Error("관리자 승인 대기 중인 계정입니다."); if(u.status==="REJECTED"||u.status==="INACTIVE")throw new Error("사용할 수 없는 계정입니다."); d.sessionUserId=u.id; save(d); return delay(u); },
-  async requestEmailVerification(email){const d=load(),normalized=email.trim().toLowerCase();if(d.users.some(x=>x.email?.toLowerCase()===normalized))throw new Error("이미 가입된 이메일입니다.");d.emailVerifications[normalized]={code:"123456",expiresAt:Date.now()+300000,attempts:0,token:null};save(d);return delay({expiresInSeconds:300});},
-  async confirmEmailVerification(email,code){const d=load(),normalized=email.trim().toLowerCase(),v=d.emailVerifications[normalized];if(!v||v.expiresAt<Date.now())throw new Error("인증번호가 만료됐습니다. 다시 받아주세요.");v.attempts+=1;if(v.attempts>5)throw new Error("인증 시도 횟수를 초과했습니다.");if(v.code!==code)throw new Error("이메일 인증번호를 확인해주세요.");v.token=`email-${Date.now()}-${Math.random().toString(36).slice(2)}`;save(d);return delay({verificationToken:v.token,expiresAt:new Date(v.expiresAt).toISOString()});},
-  async register(input){const d=load(),email=input.email.trim().toLowerCase(),verification=d.emailVerifications[email];if(!verification||verification.expiresAt<Date.now()||!verification.token||verification.token!==input.emailVerificationToken)throw new Error("이메일 인증을 다시 진행해주세요.");if(input.password.length<8)throw new Error("비밀번호는 8자 이상이어야 합니다.");if(d.users.some(x=>x.email?.toLowerCase()===email))throw new Error("이미 가입된 이메일입니다.");if(input.role==="STUDENT"&&!/^P\d{3}$/.test(input.pCode))throw new Error("고유번호는 P와 숫자 3자리로 입력해주세요.");if(input.role==="PROFESSOR"&&!/^T\d{4}$/.test(input.employeeNo))throw new Error("사번은 T와 숫자 4자리로 입력해주세요.");const matched=input.role==="STUDENT"?d.roster.some(r=>r.pCode===input.pCode&&r.name===input.name&&r.classNumber===Number(input.classNumber)&&r.email.toLowerCase()===email):d.staffDirectory.some(r=>r.employeeNo===input.employeeNo&&r.name===input.name&&r.email.toLowerCase()===email),id=Math.max(...d.users.map(x=>x.id),0)+1,u={id,...input,email,classNumber:input.role==="STUDENT"?Number(input.classNumber):null,floor:input.role==="STUDENT"?(Number(input.classNumber)<=5?4:5):null,status:matched?"ACTIVE":"PENDING",emailVerified:true};delete u.emailVerificationToken;d.users.push(u);delete d.emailVerifications[email];save(d);return delay({user:u,autoApproved:matched});},
+  async register(input){
+   const d=load(),email=String(input.email||'').trim().toLowerCase(),name=String(input.name||'').trim();
+   if(!['STUDENT','PROFESSOR'].includes(input.role))throw new Error('가입 유형을 확인해주세요.');
+   if(!name||name.length>100||!/^\S+@\S+\.\S+$/.test(email)||email.length>254)throw new Error('이름과 이메일을 확인해주세요.');
+   if(typeof input.password!=='string'||input.password.length<8||input.password.length>128)throw new Error('비밀번호는 8~128자로 입력해주세요.');
+   if(d.users.some(x=>x.email?.toLowerCase()===email))throw new Error('이미 가입된 이메일입니다.');
+   if(input.role==='STUDENT'&&(!/^P\d{3}$/.test(input.pCode)||!Number.isInteger(input.classNumber)||input.classNumber<1||input.classNumber>10))throw new Error('교육생 번호와 반을 확인해주세요.');
+   if(input.role==='PROFESSOR'&&!/^T\d{4}$/.test(input.employeeNo))throw new Error('사번을 확인해주세요.');
+   if(d.users.some(x=>input.role==='STUDENT'?x.pCode===input.pCode:x.employeeNo===input.employeeNo))throw new Error('이미 가입된 교육생 번호 또는 사번입니다.');
+   const u={id:Math.max(...d.users.map(x=>x.id),0)+1,email,name,password:input.password,role:input.role,status:'PENDING',pCode:input.role==='STUDENT'?input.pCode:null,employeeNo:input.role==='PROFESSOR'?input.employeeNo:null,classNumber:input.role==='STUDENT'?input.classNumber:null};d.users.push(u);save(d);const {password,...publicUser}=u;return delay(publicUser);
+  },
   async logout(){ const d=load(); d.sessionUserId=null; save(d); return delay(true); },
   async me(){ const d=load(); return delay(d.users.find(x=>x.id===d.sessionUserId)||null); },
   async snapshot(){ const d=load(); return delay(d); },
-  async createQuestion(input){ const d=load(),u=d.users.find(x=>x.id===d.sessionUserId),c=d.courses.find(x=>x.id===input.courseId); if(!u||u.status!=="ACTIVE"||!c||u.role==="ADMIN")throw new Error("질문을 작성할 수 없습니다.");if(u.role==="PROFESSOR"&&!c.assignments.some(x=>x.professor===u.name))throw new Error("담당 과목에만 질문을 작성할 수 있어요.");const id=Math.max(...d.questions.map(x=>x.id),0)+1; const q={id,authorId:d.sessionUserId,status:"OPEN",createdAt:new Date().toISOString(),tags:["새 질문"],relatedPostId:null,...input}; d.questions.push(q); save(d); return delay(q); },
-  async addAnswer(questionId, body){ const d=load(); const u=d.users.find(x=>x.id===d.sessionUserId);if(!u||u.status!=="ACTIVE"||!["STUDENT","PROFESSOR"].includes(u.role)||!d.questions.some(x=>x.id===questionId))throw new Error("답변을 작성할 수 없습니다."); const a={id:Math.max(...d.answers.map(x=>x.id),0)+1,questionId,authorId:u.id,roleAtCreation:u.role,body,createdAt:new Date().toISOString()}; d.answers.push(a); save(d); return delay(a); },
+  async createQuestion(input){ const d=load(),u=d.users.find(x=>x.id===d.sessionUserId),c=d.courses.find(x=>x.id===input.courseId); if(!u||u.status!=="ACTIVE"||!c||u.role==="ADMIN")throw new Error("질문을 작성할 수 없습니다.");if(u.role==="PROFESSOR"&&!c.assignments.some(x=>x.professorId===u.id))throw new Error("담당 과목에만 질문을 작성할 수 있어요.");const id=Math.max(...d.questions.map(x=>x.id),0)+1; const q={id,authorId:d.sessionUserId,status:"OPEN",createdAt:new Date().toISOString(),tags:["새 질문"],...input}; d.questions.push(q); save(d); return delay(q); },
+  async addAnswer(questionId, body){ const d=load(); const u=d.users.find(x=>x.id===d.sessionUserId);if(!u||u.status!=="ACTIVE"||!["STUDENT","PROFESSOR"].includes(u.role)||!d.questions.some(x=>x.id===questionId))throw new Error("답변을 작성할 수 없습니다."); const a={id:Math.max(...d.answers.map(x=>x.id),0)+1,questionId,authorId:u.id,body,createdAt:new Date().toISOString()}; d.answers.push(a); save(d); return delay(a); },
   async toggleResolved(questionId){ const d=load(); const q=d.questions.find(x=>x.id===questionId); if(q.authorId!==d.sessionUserId) throw new Error("질문 작성자만 상태를 변경할 수 있어요."); q.status=q.status==="OPEN"?"RESOLVED":"OPEN"; save(d); return delay(q); },
-  async markRead(postId, version){ const d=load(); d.reads[`${d.sessionUserId}:${postId}`]=Math.max(d.reads[`${d.sessionUserId}:${postId}`]||0,version); save(d); return delay(true); },
-  async markNoticeRead(postId){const d=load();d.noticeReads[`${d.sessionUserId}:${postId}`]=true;save(d);return delay(true);},
-  async dismissNotice(postId){const d=load();d.noticeDismissals[`${d.sessionUserId}:${postId}`]=true;save(d);return delay(true);},
-  async addVersion(postId, input){ const d=load(); const u=d.users.find(x=>x.id===d.sessionUserId); const p=d.posts.find(x=>x.id===postId); if(!p||p.type!=="MATERIAL") throw new Error("학습자료를 찾을 수 없어요."); if(!u||u.role!=="PROFESSOR"||p.authorId!==u.id) throw new Error("자료를 올린 교수님만 새 버전을 등록할 수 있어요."); const latest=p.versions[0]?.number||0; if(input.expectedLatestVersion!==latest) throw new Error("다른 새 버전이 먼저 등록됐어요. 화면을 새로고침해주세요."); const files=normalizeFiles(input.files);if(!files.length)throw new Error("새 버전에 포함할 파일을 한 개 이상 선택해주세요.");const v={id:Date.now(),number:latest+1,fileName:files[0].name,files,size:formatFileSize(files),note:input.changeNote}; p.versions.unshift(v);p.updatedAt=new Date().toISOString();save(d);return delay(v); },
-  async createPost(input){ const d=load(); const u=d.users.find(x=>x.id===d.sessionUserId); const c=d.courses.find(x=>x.id===input.courseId); if(!u||u.role!=="PROFESSOR") throw new Error("교수님만 글을 작성할 수 있어요."); const assignment=c.assignments.find(x=>x.professor===u.name); if(!assignment) throw new Error("이 과목에 배정된 교수님이 아니에요."); if(input.visibility.scope==="FLOOR"&&!assignment.floors.includes(Number(input.visibility.target))) throw new Error("담당하지 않은 층에는 게시할 수 없어요."); if(input.visibility.scope==="CLASS"&&!assignment.classes.includes(Number(input.visibility.target))) throw new Error("담당하지 않은 반에는 게시할 수 없어요."); const id=Math.max(...d.posts.map(x=>x.id),0)+1,files=normalizeFiles(input.files);if(input.type==="MATERIAL"&&!files.length)throw new Error("학습자료 파일을 한 개 이상 선택해주세요.");const p={id,courseId:input.courseId,authorId:u.id,instructorKind:assignment.kind,updatedAt:new Date().toISOString(),...input,files}; if(input.type==="MATERIAL")p.versions=[{id:Date.now(),number:1,fileName:files[0].name,files,size:formatFileSize(files),note:"최초 등록"}]; d.posts.push(p);save(d);return delay(p); },
-  async setUserStatus(userId,status){const d=load(),me=d.users.find(x=>x.id===d.sessionUserId);if(me?.role!=="ADMIN")throw new Error("관리자 권한이 필요합니다.");const u=d.users.find(x=>x.id===userId);if(!u)throw new Error("사용자를 찾을 수 없습니다.");if(u.role==="ADMIN"&&status==="INACTIVE"&&d.users.filter(x=>x.role==="ADMIN"&&x.status==="ACTIVE").length<=1)throw new Error("마지막 활성 관리자는 비활성화할 수 없습니다.");u.status=status;save(d);return delay(u);},
-  async saveCourse(input){const d=load(),me=d.users.find(x=>x.id===d.sessionUserId),{id,...fields}=input;if(me?.role!=="ADMIN")throw new Error("관리자 권한이 필요합니다.");let c;if(id){c=d.courses.find(x=>x.id===id);Object.assign(c,fields)}else{const nextId=Math.max(...d.courses.map(x=>x.id),0)+1;c={id:nextId,code:`COURSE-${String(nextId).padStart(3,"0")}`,description:"",color:"blue",phase:"UPCOMING",instructors:[],assignments:[],...fields};d.courses.push(c)}save(d);return delay(c);},
-  async saveAssignment(courseId,input){const d=load(),me=d.users.find(x=>x.id===d.sessionUserId);if(me?.role!=="ADMIN")throw new Error("관리자 권한이 필요합니다.");const c=d.courses.find(x=>x.id===courseId);if(!c)throw new Error("과목을 찾을 수 없습니다.");const existing=c.assignments.find(x=>x.professor===input.professor);if(existing)Object.assign(existing,input);else c.assignments.push(input);c.instructors=[...new Set(c.assignments.map(x=>x.professor))];save(d);return delay(c);},
-  async replaceTeachingAssignments(courseId,{assignments}){const d=load(),me=d.users.find(x=>x.id===d.sessionUserId);if(me?.role!=="ADMIN")throw new Error("관리자 권한이 필요합니다.");if(assignments.length!==10||![1,2,3,4,5,6,7,8,9,10].every(n=>assignments.filter(x=>x.classNumber===n&&x.professor).length===1))throw new Error("1~10반에 교수님을 한 분씩 지정해주세요.");if(new Set(assignments.map(x=>x.professor)).size!==10)throw new Error("한 교수님은 한 반에만 배정할 수 있어요.");if(assignments.some(x=>!["LEAD","PRACTICE"].includes(x.instructorKind)))throw new Error("교수님 유형을 확인해주세요.");const floor4=assignments.filter(x=>x.classNumber<=5),floor5=assignments.filter(x=>x.classNumber>=6);if(floor4.filter(x=>x.instructorKind==="LEAD").length!==1||floor5.filter(x=>x.instructorKind==="LEAD").length!==1)throw new Error("4층과 5층에서 전임 교수님을 각 한 분만 지정해주세요.");const c=d.courses.find(x=>x.id===courseId);if(!c)throw new Error("과목을 찾을 수 없습니다.");c.assignments=assignments.map(x=>({professor:x.professor,kind:x.instructorKind,floors:[x.classNumber<=5?4:5],classes:[x.classNumber]}));c.instructors=assignments.map(x=>x.professor);save(d);return delay(c);},
+  async updatePostState(postId,input){
+   const d=load(),u=d.users.find(x=>x.id===d.sessionUserId),p=d.posts.find(x=>x.id===postId);
+   if(!u||u.status!=='ACTIVE'||!p)throw new Error('게시물을 확인할 수 없습니다.');
+   if(u.role==='STUDENT'&&p.visibility.scope!=='ALL'&&!(p.visibility.scope==='FLOOR'?u.floor===p.visibility.target:u.classNumber===p.visibility.target))throw new Error('공개 대상이 아닙니다.');
+   if(!Object.keys(input).length||Object.keys(input).some(k=>!['isRead','isDismissed','lastSeenVersionId'].includes(k)))throw new Error('변경할 상태를 확인해주세요.');
+   const key=`${u.id}:${postId}`,state=d.postUserStates[key]||{postId,lastSeenVersionId:null,isRead:false,isDismissed:false};
+   for(const k of ['isRead','isDismissed'])if(k in input){if(typeof input[k]!=='boolean')throw new Error('읽음·숨김 값은 true/false여야 합니다.');state[k]=input[k]}
+   if('lastSeenVersionId' in input){const v=p.versions?.find(v=>v.id===input.lastSeenVersionId);if(!v)throw new Error('이 자료에 속한 버전만 확인할 수 있습니다.');const seen=p.versions.find(v=>v.id===state.lastSeenVersionId);if(!seen||v.number>=seen.number)state.lastSeenVersionId=v.id}
+   d.postUserStates[key]=state;save(d);return delay({...state,hasUnseenVersion:p.type==='MATERIAL'&&p.versions[0]?.id!==state.lastSeenVersionId});
+  },
+  async addVersion(postId, input){ const d=load(); const u=d.users.find(x=>x.id===d.sessionUserId); const p=d.posts.find(x=>x.id===postId); if(!p||p.type!=="MATERIAL") throw new Error("학습자료를 찾을 수 없어요."); if(!u||u.role!=="PROFESSOR"||p.authorId!==u.id) throw new Error("자료를 올린 교수님만 새 버전을 등록할 수 있어요."); const latest=p.versions[0]?.number||0; const files=normalizeFiles(input.files);if(!files.length)throw new Error("새 버전에 포함할 파일을 한 개 이상 선택해주세요.");const v={id:Date.now(),number:latest+1,fileName:files[0].name,files,size:formatFileSize(files),note:input.changeNote}; p.versions.unshift(v);p.updatedAt=new Date().toISOString();save(d);return delay(v); },
+  async createPost(input){ const d=load(); const u=d.users.find(x=>x.id===d.sessionUserId); const c=d.courses.find(x=>x.id===input.courseId); if(!u||u.role!=="PROFESSOR") throw new Error("교수님만 글을 작성할 수 있어요."); const assignment=c.assignments.find(x=>x.professorId===u.id); if(!assignment) throw new Error("이 과목에 배정된 교수님이 아니에요."); if(input.visibility.scope==="FLOOR"&&!assignment.floors.includes(Number(input.visibility.target))) throw new Error("담당하지 않은 층에는 게시할 수 없어요."); if(input.visibility.scope==="CLASS"&&!assignment.classes.includes(Number(input.visibility.target))) throw new Error("담당하지 않은 반에는 게시할 수 없어요."); const id=Math.max(...d.posts.map(x=>x.id),0)+1,files=normalizeFiles(input.files);if(input.type==="MATERIAL"&&!files.length)throw new Error("학습자료 파일을 한 개 이상 선택해주세요.");const p={id,courseId:input.courseId,authorId:u.id,instructorKind:assignment.kind,updatedAt:new Date().toISOString(),...input,files}; if(input.type==="MATERIAL")p.versions=[{id:Date.now(),number:1,fileName:files[0].name,files,size:formatFileSize(files),note:"최초 등록"}]; d.posts.push(p);save(d);return delay(p); },
+  async setUserStatus(userId,status){const d=load(),me=d.users.find(x=>x.id===d.sessionUserId);if(me?.role!=="ADMIN"||me.status!=="ACTIVE")throw new Error("관리자 권한이 필요합니다.");const u=d.users.find(x=>x.id===userId);if(!u)throw new Error("사용자를 찾을 수 없습니다.");if(u.role==="ADMIN"&&status==="INACTIVE"&&d.users.filter(x=>x.role==="ADMIN"&&x.status==="ACTIVE").length<=1)throw new Error("마지막 활성 관리자는 비활성화할 수 없습니다.");if(!({PENDING:["ACTIVE","REJECTED"],ACTIVE:["INACTIVE"],INACTIVE:["ACTIVE"],REJECTED:[]}[u.status]||[]).includes(status))throw new Error("허용되지 않은 상태 변경입니다.");u.status=status;save(d);return delay(u);},
+  async saveCourse(input){
+   const d=load(),me=d.users.find(x=>x.id===d.sessionUserId);
+   if(me?.role!=='ADMIN'||me.status!=='ACTIVE')throw new Error('관리자 권한이 필요합니다.');
+   const {id,title,sessions,assignments}=input;
+   if(!title?.trim()||title.length>150)throw new Error('과목명을 확인해주세요.');
+   if(sessions?.length!==2||![4,5].every(f=>sessions.filter(s=>s.floor===f).length===1)||sessions.some(s=>!/^\d{4}-\d{2}-\d{2}$/.test(s.startDate)||!/^\d{4}-\d{2}-\d{2}$/.test(s.endDate)||s.startDate>s.endDate))throw new Error('4층·5층 수업 시작일과 종료일을 확인해주세요.');
+   if(assignments?.length!==10||![1,2,3,4,5,6,7,8,9,10].every(n=>assignments.filter(a=>a.classNumber===n).length===1)||new Set(assignments.map(a=>a.professorId)).size!==10)throw new Error('각 반에 서로 다른 교수님 10명을 지정해주세요.');
+   if(assignments.some(a=>!d.users.some(u=>u.id===a.professorId&&u.role==='PROFESSOR'&&u.status==='ACTIVE')||!['LEAD','PRACTICE'].includes(a.instructorKind)))throw new Error('활성 교수님과 전임·실습 구분을 확인해주세요.');
+   if([4,5].some(f=>assignments.filter(a=>(a.classNumber<=5?4:5)===f&&a.instructorKind==='LEAD').length!==1))throw new Error('층마다 전임 교수님을 한 분씩 지정해주세요.');
+   let c=id?d.courses.find(c=>c.id===id):null;if(id&&!c)throw new Error('과목을 찾을 수 없습니다.');
+   if(!c){const nextId=Math.max(...d.courses.map(c=>c.id),0)+1;c={id:nextId,code:`COURSE-${String(nextId).padStart(3,'0')}`,description:'',color:'green'};d.courses.push(c)}
+   c.title=title.trim();c.sessions=sessions.map(s=>({...s}));c.period=sessions.map(s=>`${s.floor}층 ${s.startDate.slice(5).replace('-','.')}—${s.endDate.slice(5).replace('-','.')}`).join(' · ');
+   c.assignments=assignments.map(a=>({professorId:a.professorId,professor:d.users.find(u=>u.id===a.professorId).name,kind:a.instructorKind,floors:[a.classNumber<=5?4:5],classes:[a.classNumber]}));c.instructors=c.assignments.map(a=>a.professor);
+   save(d);return delay(c);
+  },
   async reset(){ localStorage.setItem(KEY,JSON.stringify(initial)); return delay(true); }
 };
