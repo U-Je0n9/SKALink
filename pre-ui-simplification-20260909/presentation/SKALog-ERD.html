@@ -1,0 +1,386 @@
+<!doctype html><html lang="ko"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>SKALog · Complete ERD</title>
+<style>
+*{box-sizing:border-box}body{margin:0;font:14px -apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo',sans-serif;color:#294332;background:#edf1ee}button,input{font:inherit;padding:8px 12px;background:white;border:1px solid #c9d7cd;border-radius:7px}button{cursor:pointer}button:hover{background:#e4efe7}header{padding:14px 22px;display:flex;gap:12px;align-items:center;background:white;height:65px}header strong{font-size:21px;color:#135e43}header span{flex:1}.toolbar{height:48px;padding:6px 22px;display:flex;gap:8px;align-items:center;border-block:1px solid #d6e1d8}small{color:#738476}#viewport{height:calc(100vh - 144px);overflow:auto;cursor:grab}#stage{padding:24px;width:max-content}svg{display:block;background:#fcfdfb;box-shadow:0 4px 28px #19352215}.edge{cursor:pointer;pointer-events:stroke}.edge:hover .wire,.edge.selected .wire{stroke:#dd762e!important;stroke-width:5!important}.edge.muted{opacity:.1}.entity{cursor:pointer}.entity.muted{opacity:.28}.entity.selected .shell,.entity:hover .shell{stroke:#da853e;stroke-width:3}.field:hover rect{fill:#e4efe5}footer{height:31px;padding:8px 22px;background:white;font-size:12px;color:#738476}dialog{width:900px;max-width:95vw;max-height:88vh;border:1px solid #ccd9cf;border-radius:12px;padding:25px}dialog::backdrop{background:#14321f88}dialog button{float:right}pre{white-space:pre-wrap;line-height:1.65;background:#f2f6f2;padding:16px}#status{font-weight:600;color:#135e43}@media print{header,.toolbar,footer{display:none}#viewport{height:auto;overflow:visible}#stage{padding:0}svg{width:100%!important;height:auto!important}}
+</style>
+<header><strong>SKALog / Complete ERD</strong><span>15 tables · 142 columns · 25 foreign keys</span><button id="svgSave">전체 SVG</button><button id="pngSave">전체 PNG</button><button id="cropSave">현재 영역 PNG</button><button id="source">DBML 원문</button></header>
+<div class="toolbar"><button id="fit">전체 맞춤</button><button id="readable">100%</button><button id="minus">−</button><span id="zoomLabel"></span><button id="plus">+</button><input id="search" placeholder="table / column 검색"><button id="reset">강조 해제</button><small>드래그 이동 · Ctrl/⌘+휠 확대 · 테이블/선 클릭: 관계 강조 · 테이블 더블클릭: 원문</small><span id="status"></span></div>
+<div id="viewport"><div id="stage"></div></div><footer>전체 컬럼 · 전체 FK 표시 | PK 기본키 · FK 외래키 · UQ UNIQUE · AI increment · NN NOT NULL · F01–F25 관계 식별자 | 점선: nullable FK · 컬럼 설명: 마우스 오버</footer>
+<dialog id="modal"><button id="close">닫기 ×</button><div id="modalBody"></div></dialog>
+<script id="dbml" type="text/plain">// SKALog 학습 지식 공유 플랫폼 데이터 모델
+// API v1.1.0 기준. floor는 1~5반=4층, 6~10반=5층 규칙을 적용한다.
+
+Enum user_role {
+  STUDENT
+  PROFESSOR
+  ADMIN
+}
+
+Enum user_status {
+  PENDING
+  ACTIVE
+  REJECTED
+  INACTIVE
+}
+
+Enum instructor_kind {
+  LEAD
+  PRACTICE
+}
+
+Enum question_status {
+  OPEN
+  RESOLVED
+}
+
+Enum post_type {
+  EXPLANATION
+  MATERIAL
+}
+
+Enum visibility_scope {
+  ALL
+  FLOOR
+  CLASS
+}
+
+Table users {
+  id bigint [pk, increment]
+  email varchar(254) [not null, unique, note: '로그인 ID. 비교 시 소문자 정규화']
+  password_hash varchar(255) [not null, note: '원문 비밀번호 저장 금지']
+  name varchar(100) [not null]
+  role user_role [not null]
+  status user_status [not null, default: 'PENDING']
+  p_code varchar(4) [unique, note: '교육생만 사용, P+숫자 3자리']
+  employee_no varchar(5) [unique, note: '교수님만 사용, T+숫자 4자리']
+  class_number int [note: '교육생만 1~10. floor 응답은 이 값으로 계산']
+  email_verified_at timestamp
+  approved_by bigint
+  approved_at timestamp
+  rejected_reason varchar(500)
+  deactivated_at timestamp
+  last_login_at timestamp
+  revision int [not null, default: 1, note: '관리자 수정 낙관적 잠금']
+  created_at timestamp [not null, default: `now()`]
+  updated_at timestamp [not null, default: `now()`]
+
+  Note: '역할별 CHECK: STUDENT는 p_code/class_number 필수, PROFESSOR는 employee_no 필수, ADMIN은 둘 다 null. ACTIVE 전환 시 email_verified_at 필수.'
+}
+
+Table registration_directory {
+  identity_no varchar(5) [pk, note: '교육생 P코드 또는 교수님 사번']
+  role user_role [not null, note: 'STUDENT 또는 PROFESSOR만 허용']
+  name varchar(100) [not null]
+  email varchar(254) [not null, unique]
+  class_number int [note: '교육생만 1~10']
+  is_current boolean [not null, default: true]
+  created_at timestamp [not null, default: `now()`]
+  updated_at timestamp [not null, default: `now()`]
+
+  Note: '회원가입 자동 승인을 위한 내부 기준 명단. 관리자 화면의 학생 목록과는 별개이며 직접 노출하지 않는다.'
+}
+
+Table email_verifications {
+  id bigint [pk, increment]
+  email varchar(254) [not null]
+  code_hash varchar(255) [not null]
+  attempt_count int [not null, default: 0]
+  sent_at timestamp [not null, default: `now()`]
+  expires_at timestamp [not null]
+  verified_at timestamp
+  verification_token_hash varchar(255) [unique]
+  token_expires_at timestamp
+  consumed_at timestamp
+  created_at timestamp [not null, default: `now()`]
+
+  indexes {
+    (email, created_at) [name: 'idx_email_verifications_email_created']
+  }
+}
+
+Table auth_sessions {
+  id uuid [pk]
+  user_id bigint [not null]
+  token_hash varchar(255) [not null, unique, note: 'HttpOnly 세션 쿠키의 해시']
+  expires_at timestamp [not null]
+  revoked_at timestamp
+  last_seen_at timestamp [not null, default: `now()`]
+  ip_hash varchar(255)
+  user_agent varchar(500)
+  created_at timestamp [not null, default: `now()`]
+
+  indexes {
+    (user_id, revoked_at, expires_at) [name: 'idx_auth_sessions_user_active']
+  }
+}
+
+Table courses {
+  id bigint [pk, increment]
+  internal_code varchar(50) [not null, unique, note: '서버 자동 생성']
+  title varchar(150) [not null]
+  description text
+  color_key varchar(20) [not null, default: 'green', note: 'green/orange/blue/violet']
+  is_archived boolean [not null, default: false]
+  revision int [not null, default: 1]
+  created_by bigint [not null]
+  created_at timestamp [not null, default: `now()`]
+  updated_at timestamp [not null, default: `now()`]
+
+  Note: 'API의 phase/displayPeriod는 로그인 사용자의 층에 맞는 course_sessions와 현재 날짜로 계산한다. leadProfessors/isMine/권한은 배정 테이블로 계산한다.'
+}
+
+Table course_sessions {
+  id bigint [pk, increment]
+  course_id bigint [not null]
+  floor_number int [not null, note: '4 또는 5']
+  start_date date [not null]
+  end_date date [not null]
+  created_at timestamp [not null, default: `now()`]
+  updated_at timestamp [not null, default: `now()`]
+
+  indexes {
+    (course_id, floor_number) [unique]
+  }
+
+  Note: 'CHECK: floor_number IN (4,5), start_date <= end_date. 과목별 두 층 일정은 관리자 저장 트랜잭션에서 검증.'
+}
+
+Table course_instructor_assignments {
+  id bigint [pk, increment]
+  course_id bigint [not null]
+  professor_id bigint [not null]
+  class_number int [not null, note: '1~10']
+  floor_number int [not null, note: 'class_number에 따라 4 또는 5']
+  instructor_kind instructor_kind [not null]
+  assigned_at timestamp [not null, default: `now()`]
+
+  indexes {
+    (course_id, class_number) [unique, note: '한 반에 교수님 한 분']
+    (course_id, professor_id) [unique, note: '한 과목에서 교수님은 한 반만 담당']
+    (course_id, floor_number, instructor_kind) [name: 'idx_course_assignment_floor_kind']
+  }
+
+  Note: '저장 시 10개 반/서로 다른 교수님 10명, 4층 LEAD 1+PRACTICE 4, 5층 LEAD 1+PRACTICE 4를 검증. 교수님 역할·활성 상태도 검증.'
+}
+
+Table questions {
+  id bigint [pk, increment]
+  course_id bigint [not null]
+  author_id bigint [not null]
+  related_post_id bigint
+  title varchar(150) [not null]
+  body text [not null]
+  status question_status [not null, default: 'OPEN']
+  resolved_at timestamp
+  revision int [not null, default: 1]
+  is_hidden boolean [not null, default: false]
+  hidden_reason varchar(1000)
+  hidden_by bigint
+  hidden_at timestamp
+  created_at timestamp [not null, default: `now()`]
+  updated_at timestamp [not null, default: `now()`]
+
+  indexes {
+    (course_id, status, created_at) [name: 'idx_questions_course_status_created']
+    (author_id, created_at) [name: 'idx_questions_author_created']
+  }
+}
+
+Table question_tags {
+  question_id bigint [not null]
+  tag varchar(50) [not null]
+  display_order int [not null]
+
+  indexes {
+    (question_id, display_order) [pk]
+    (question_id, tag) [unique]
+    (tag) [name: 'idx_question_tags_tag']
+  }
+}
+
+Table answers {
+  id bigint [pk, increment]
+  question_id bigint [not null]
+  author_id bigint [not null]
+  author_role_at_creation user_role [not null, note: 'STUDENT 또는 PROFESSOR']
+  body text [not null]
+  revision int [not null, default: 1]
+  is_hidden boolean [not null, default: false]
+  hidden_reason varchar(1000)
+  hidden_by bigint
+  hidden_at timestamp
+  created_at timestamp [not null, default: `now()`]
+  updated_at timestamp [not null, default: `now()`]
+
+  indexes {
+    (question_id, author_role_at_creation, created_at) [name: 'idx_answers_question_role_created']
+  }
+}
+
+Table posts {
+  id bigint [pk, increment]
+  course_id bigint [not null]
+  author_id bigint [not null]
+  author_instructor_kind instructor_kind [not null, note: '작성 당시 전임/실습 구분 보존']
+  type post_type [not null]
+  visibility_scope visibility_scope [not null]
+  visibility_floor int
+  visibility_class_number int
+  title varchar(150) [not null]
+  body text
+  revision int [not null, default: 1]
+  is_hidden boolean [not null, default: false]
+  hidden_reason varchar(1000)
+  hidden_by bigint
+  hidden_at timestamp
+  created_at timestamp [not null, default: `now()`]
+  updated_at timestamp [not null, default: `now()`]
+
+  indexes {
+    (course_id, type, author_instructor_kind, updated_at) [name: 'idx_posts_course_type_priority']
+    (visibility_scope, visibility_floor, visibility_class_number) [name: 'idx_posts_visibility']
+  }
+
+  Note: '공개 범위 CHECK: ALL은 대상 둘 다 null, FLOOR는 visibility_floor만 4/5, CLASS는 visibility_class_number만 1~10. MATERIAL은 material_versions 1개 이상, EXPLANATION은 버전 없음.'
+}
+
+Table material_versions {
+  id bigint [pk, increment]
+  post_id bigint [not null]
+  version_number int [not null]
+  change_note text [not null]
+  created_by bigint [not null]
+  created_at timestamp [not null, default: `now()`]
+
+  indexes {
+    (post_id, version_number) [unique]
+    (post_id, created_at) [name: 'idx_material_versions_post_created']
+  }
+}
+
+Table material_version_files {
+  id bigint [pk, increment]
+  material_version_id bigint [not null]
+  original_file_name varchar(255) [not null]
+  storage_key varchar(500) [not null, unique, note: '외부 스토리지 내부 키, 공개 응답 제외']
+  file_size_bytes bigint [not null]
+  mime_type varchar(150) [not null]
+  checksum_sha256 char(64)
+  display_order int [not null]
+  created_at timestamp [not null, default: `now()`]
+
+  indexes {
+    (material_version_id, display_order) [unique]
+  }
+}
+
+Table material_reads {
+  user_id bigint [not null]
+  post_id bigint [not null]
+  last_seen_version_id bigint [not null]
+  seen_at timestamp [not null]
+
+  indexes {
+    (user_id, post_id) [pk]
+  }
+
+  Note: '버전 확인 상태. last_seen_version_id는 반드시 같은 post_id의 버전이어야 하며 더 낮은 버전으로 역행시키지 않는다.'
+}
+
+Table post_user_states {
+  user_id bigint [not null]
+  post_id bigint [not null]
+  read_at timestamp
+  dismissed_at timestamp
+  created_at timestamp [not null, default: `now()`]
+  updated_at timestamp [not null, default: `now()`]
+
+  indexes {
+    (user_id, post_id) [pk]
+    (user_id, dismissed_at, updated_at) [name: 'idx_post_user_states_notice']
+  }
+
+  Note: '학생 메인의 새 자료 블록에만 사용하는 개인 읽음/숨김 상태. material_reads의 버전 확인과 의미가 다르다.'
+}
+
+Ref: users.approved_by > users.id
+Ref: auth_sessions.user_id > users.id
+Ref: courses.created_by > users.id
+Ref: course_sessions.course_id > courses.id
+Ref: course_instructor_assignments.course_id > courses.id
+Ref: course_instructor_assignments.professor_id > users.id
+Ref: questions.course_id > courses.id
+Ref: questions.author_id > users.id
+Ref: questions.related_post_id > posts.id
+Ref: questions.hidden_by > users.id
+Ref: question_tags.question_id > questions.id
+Ref: answers.question_id > questions.id
+Ref: answers.author_id > users.id
+Ref: answers.hidden_by > users.id
+Ref: posts.course_id > courses.id
+Ref: posts.author_id > users.id
+Ref: posts.hidden_by > users.id
+Ref: material_versions.post_id > posts.id
+Ref: material_versions.created_by > users.id
+Ref: material_version_files.material_version_id > material_versions.id
+Ref: material_reads.user_id > users.id
+Ref: material_reads.post_id > posts.id
+Ref: material_reads.last_seen_version_id > material_versions.id
+Ref: post_user_states.user_id > users.id
+Ref: post_user_states.post_id > posts.id
+</script><script>'use strict';
+const raw=document.querySelector('#dbml').textContent,schema={},refs=[],enums={};
+let current=null,depth=0,enumName=null;
+for(const line of raw.split('\n')){
+ const em=line.match(/^Enum (\w+) \{/);if(em){enumName=em[1];enums[enumName]=[];continue}if(enumName){if(line.trim()==='}')enumName=null;else if(line.trim())enums[enumName].push(line.trim());continue}
+ const start=line.match(/^Table (\w+) \{/);if(start){current={name:start[1],fields:[],indexes:[],note:'',raw:line+'\n'};schema[current.name]=current;depth=1;continue}
+ if(current){current.raw+=line+'\n';const f=line.match(/^  (\w+) ([\w]+(?:\(\d+\))?)(?: \[(.*)\])?\s*$/);if(depth===1&&f){const flags=f[3]||'';current.fields.push({name:f[1],type:f[2],flags,pk:/\bpk\b/.test(flags),uq:/\bunique\b/.test(flags),ai:/\bincrement\b/.test(flags),nn:/\bnot null\b/.test(flags),default:(flags.match(/default: (`[^`]*`|'[^']*'|[^,\]]+)/)||[])[1]||'',note:(flags.match(/note: '([^']*)'/)||[])[1]||''})}
+ const ix=line.match(/^    \(([^)]+)\) \[(.*)\]/);if(depth===2&&ix){const flags=ix[2],index={cols:ix[1].split(',').map(s=>s.trim()),kind:/\bpk\b/.test(flags)?'PK':/\bunique\b/.test(flags)?'UQ':'IDX',name:(flags.match(/name: '([^']*)'/)||[])[1]||'',note:(flags.match(/note: '([^']*)'/)||[])[1]||''};current.indexes.push(index);if(index.kind==='PK')current.fields.forEach(f=>{if(index.cols.includes(f.name))f.pk=true})}
+ const note=line.match(/^  Note: '(.*)'/);if(note)current.note=note[1];depth+=(line.match(/\{/g)||[]).length-(line.match(/\}/g)||[]).length;if(depth===0)current=null;
+ }
+ const r=line.match(/^Ref: (\w+)\.(\w+) > (\w+)\.(\w+)/);if(r)refs.push({id:'F'+String(refs.length+1).padStart(2,'0'),from:r[1],field:r[2],to:r[3],target:r[4]});
+}
+const groups=[{label:'IDENTITY & ACCESS',color:'#17664b',tables:['users','auth_sessions','registration_directory','email_verifications']},{label:'COURSE MANAGEMENT',color:'#a26627',tables:['courses','course_instructor_assignments','course_sessions']},{label:'QUESTIONS & ANSWERS',color:'#4165ab',tables:['questions','answers','question_tags']},{label:'CONTENT & MATERIALS',color:'#7853a1',tables:['posts','material_versions','material_version_files','material_reads','post_user_states']}];
+const layout={users:[0,0],auth_sessions:[0,1],registration_directory:[0,2],email_verifications:[0,3],courses:[1,0],course_instructor_assignments:[1,1],course_sessions:[1,2],questions:[2,0],answers:[2,1],question_tags:[2,2],posts:[3,0],material_versions:[3,1],material_version_files:[3,2],material_reads:[3,3],post_user_states:[2,3]};
+const W=4020,TW=800,ROW=33,HEAD=105,LEFT=92,COL=990;
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const text=(x,y,s,size=19,color='#294333',weight=400,extra='')=>`<text x="${x}" y="${y}" font-size="${size}" fill="${color}" font-weight="${weight}" ${extra}>${esc(s)}</text>`;
+function wrap(s,max=88){const lines=[];let line='',len=0;for(const c of s){const cw=c.charCodeAt(0)>255?1.8:1;if(len+cw>max){lines.push(line);line='';len=0}line+=c;len+=cw}if(line)lines.push(line);return lines}
+function constraints(t){const out=[];for(const ix of t.indexes){wrap(`${ix.kind} (${ix.cols.join(', ')})`,83).forEach(s=>out.push({s,color:ix.kind==='PK'?'#936513':ix.kind==='UQ'?'#7a509f':'#546b5c'}));if(ix.name)out.push({s:'  '+ix.name,color:'#76877a'});if(ix.note)wrap('  Note: '+ix.note,83).forEach(s=>out.push({s,color:'#76877a'}))}if(t.note){out.push({s:'DBML NOTE · validation rules (not declared CHECK)',color:'#a4682b'});wrap(t.note,82).forEach(s=>out.push({s,color:'#687a6d'}))}return out}
+for(const t of Object.values(schema)){t.group=groups.find(g=>g.tables.includes(t.name));t.extra=constraints(t);t.h=HEAD+t.fields.length*ROW+14+(t.extra.length?35+t.extra.length*24:0)}
+const rowTop=[370];for(let r=1;r<4;r++)rowTop[r]=rowTop[r-1]+Math.max(...Object.values(schema).filter(t=>layout[t.name][1]===r-1).map(t=>t.h))+150;
+for(const t of Object.values(schema)){t.x=LEFT+layout[t.name][0]*COL;t.y=rowTop[layout[t.name][1]]}
+const bottom=Math.max(...Object.values(schema).map(t=>t.y+t.h))+70,H=bottom+640;
+function fy(t,name){return t.y+HEAD+t.fields.findIndex(f=>f.name===name)*ROW+ROW/2}
+function table(t){let s=`<g class="entity" data-table="${t.name}" tabindex="0" role="button" aria-label="${t.name}"><rect class="shell" x="${t.x}" y="${t.y}" width="${TW}" height="${t.h}" rx="10" fill="#fff" stroke="#becdc2" stroke-width="1.5"/><path d="M${t.x+10} ${t.y} H${t.x+TW-10} Q${t.x+TW} ${t.y} ${t.x+TW} ${t.y+10} V${t.y+61} H${t.x} V${t.y+10} Q${t.x} ${t.y} ${t.x+10} ${t.y}" fill="${t.group.color}"/>`+text(t.x+18,t.y+39,t.name,t.name.length>27?25:28,'white',650)+text(t.x+TW-18,t.y+38,String(t.fields.length)+' cols',16,'#ffffffcc',400,'text-anchor="end"');
+const cols=[18,147,443,627,697];['KEY / REF','COLUMN','TYPE','NULL','DEFAULT'].forEach((v,i)=>s+=text(t.x+cols[i],t.y+87,v,14,'#75877a',650));
+t.fields.forEach((f,i)=>{const y=t.y+HEAD+i*ROW,ref=refs.find(r=>r.from===t.name&&r.field===f.name),flags=[f.pk?'PK':'',ref?'FK':'',f.uq?'UQ':'',f.ai?'AI':''].filter(Boolean).join(' ');s+=`<g class="field" data-column="${t.name}.${f.name}"><title>${esc(f.name+' '+f.type+' ['+f.flags+']'+(ref?'\n'+ref.id+': '+ref.from+'.'+ref.field+' → '+ref.to+'.'+ref.target:''))}</title><rect x="${t.x+1}" y="${y}" width="${TW-2}" height="${ROW}" fill="${f.pk?'#fff9e8':i%2?'#f6f9f6':'#fff'}"/>`+text(t.x+18,y+23,flags,15,f.pk?'#98681b':ref?t.group.color:'#796193',650)+text(t.x+113,y+23,ref?ref.id:'',11,t.group.color,600)+text(t.x+147,y+23,f.name,19,'#223d2c',f.pk?650:450)+text(t.x+443,y+23,f.type,18,'#718276')+text(t.x+627,y+23,f.pk||f.nn?'NN':'NULL',16,f.pk||f.nn?'#314e3b':'#94a096',f.pk||f.nn?600:400)+text(t.x+697,y+23,f.default.replace(/`/g,'')||'—',17,f.default?'#8d602b':'#bec8c0')+'</g>'});
+if(t.extra.length){const y=t.y+HEAD+t.fields.length*ROW+12;s+=`<path d="M${t.x+16} ${y} H${t.x+TW-16}" stroke="#d4dfd6"/>`+text(t.x+18,y+27,'COMPOSITE KEYS / INDEXES / RULES',13,'#78897c',650);t.extra.forEach((e,i)=>s+=text(t.x+18,y+54+i*24,e.s,16,e.color))}return s+'</g>'}
+const corridors=new Map();function lane(side,t){const key=layout[t.name][0]+':'+side,n=corridors.get(key)||0;corridors.set(key,n+1);return side==='R'?t.x+TW+24+n*8:t.x-24-n*8}
+function relation(r,i){const a=schema[r.from],b=schema[r.to],same=layout[r.from][0]===layout[r.to][0],right=layout[r.from][0]<layout[r.to][0],as=same?'R':right?'R':'L',bs=same?'R':right?'L':'R';const ax=a.x+(as==='R'?TW:0),bx=b.x+(bs==='R'?TW:0),ay=fy(a,r.field),by=fy(b,r.target),al=lane(as,a),bl=same?al:lane(bs,b);let points;if(same)points=`${ax},${ay} ${al},${ay} ${al},${by} ${bx},${by}`;else{const routeY=rowTop[Math.min(layout[r.from][1],layout[r.to][1])]-24-i*3.8;points=`${ax},${ay} ${al},${ay} ${al},${routeY} ${bl},${routeY} ${bl},${by} ${bx},${by}`}
+const f=a.fields.find(f=>f.name===r.field),optional=!(f.nn||f.pk),color=a.group.color,ad=as==='R'?1:-1,bd=bs==='R'?1:-1;
+let s=`<g class="edge" data-ref="${r.id}" data-from="${r.from}" data-to="${r.to}"><title>${r.id}: ${r.from}.${r.field} → ${r.to}.${r.target} | child 0..N : parent ${optional?'0..1':'1'}</title><polyline points="${points}" fill="none" stroke="transparent" stroke-width="15"/><polyline class="wire" points="${points}" fill="none" stroke="${color}" stroke-width="2.4" stroke-linejoin="round" ${optional?'stroke-dasharray="7 5"':''} opacity=".68"/><path d="M${ax} ${ay-7} L${ax+ad*13} ${ay} L${ax} ${ay+7}" fill="none" stroke="${color}" stroke-width="2"/><circle cx="${ax+ad*19}" cy="${ay}" r="4" fill="#fcfdfb" stroke="${color}" stroke-width="2"/><path d="M${bx+bd*8} ${by-7} V${by+7}" stroke="${color}" stroke-width="2"/>`;
+s+=optional?`<circle cx="${bx+bd*19}" cy="${by}" r="4" fill="#fcfdfb" stroke="${color}" stroke-width="2"/>`:`<path d="M${bx+bd*16} ${by-7} V${by+7}" stroke="${color}" stroke-width="2"/>`;return s+'</g>'}
+function render(){corridors.clear();let s=`<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" style="font-family:-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo','Malgun Gothic',sans-serif"><rect width="${W}" height="${H}" fill="#fcfdfb"/>`+text(LEFT,65,'SKALog / ENTITY RELATIONSHIP DIAGRAM',38,'#194631',700)+text(LEFT,103,'15 tables  ·  142 columns  ·  25 foreign keys  ·  6 enums  |  Original DBML names & constraints',21,'#738579')+text(LEFT,139,'PK primary key   ·   FK foreign key   ·   UQ unique   ·   AI increment   ·   NN not null   ·   dashed line = nullable FK   ·   crow’s foot = 0..N',18,'#6c7e70');groups.forEach((g,i)=>s+=text(LEFT+i*COL,197,g.label,21,g.color,700));
+s+=refs.map(relation).join('');s+=Object.values(schema).map(table).join('');
+s+=text(LEFT,bottom,'ENUM DEFINITIONS',24,'#34523e',700);Object.entries(enums).forEach(([n,values],i)=>{const x=LEFT+(i%3)*COL,y=bottom+38+Math.floor(i/3)*94;s+=text(x,y,n,22,'#48624f',650)+text(x,y+30,values.join('  |  '),18,'#7a887c')});
+s+=text(LEFT,bottom+259,'FOREIGN KEY REGISTER · child FK → parent key',24,'#34523e',700);refs.forEach((r,i)=>{const x=LEFT+Math.floor(i/9)*1290,y=bottom+299+(i%9)*29;s+=text(x,y,`${r.id}  ${r.from}.${r.field} → ${r.to}.${r.target}`,18,schema[r.from].group.color)});
+s+=text(LEFT,H-31,'SOURCE: SKALA교육플랫폼-DB.dbml · Notes are documentation, not declared CHECK constraints. Column notes: hover / double-click table.',17,'#7a887c')+'</svg>';document.querySelector('#stage').innerHTML=s}
+render();
+const viewport=document.querySelector('#viewport');let zoom=1;
+function setZoom(z,cx,cy){const old=zoom;zoom=Math.min(2,Math.max(.12,z));const svg=document.querySelector('#stage svg');svg.style.width=W*zoom+'px';svg.style.height=H*zoom+'px';document.querySelector('#zoomLabel').textContent=Math.round(zoom*100)+'%';if(cx!==undefined){viewport.scrollLeft=(viewport.scrollLeft+cx)*zoom/old-cx;viewport.scrollTop=(viewport.scrollTop+cy)*zoom/old-cy}}
+function fit(){setZoom(Math.min((viewport.clientWidth-48)/W,(viewport.clientHeight-48)/H));viewport.scrollLeft=0;viewport.scrollTop=0}
+document.querySelector('#fit').onclick=fit;document.querySelector('#readable').onclick=()=>setZoom(1);document.querySelector('#minus').onclick=()=>setZoom(zoom/1.2);document.querySelector('#plus').onclick=()=>setZoom(zoom*1.2);
+viewport.addEventListener('wheel',e=>{if(e.ctrlKey||e.metaKey){e.preventDefault();const b=viewport.getBoundingClientRect();setZoom(zoom*(e.deltaY<0?1.12:1/1.12),e.clientX-b.left,e.clientY-b.top)}},{passive:false});let drag=null,moved=false;
+viewport.addEventListener('pointerdown',e=>{if(e.button!==0)return;drag={x:e.clientX,y:e.clientY,l:viewport.scrollLeft,t:viewport.scrollTop};moved=false});window.addEventListener('pointermove',e=>{if(!drag)return;const dx=e.clientX-drag.x,dy=e.clientY-drag.y;if(Math.abs(dx)+Math.abs(dy)>5){moved=true;viewport.scrollLeft=drag.l-dx;viewport.scrollTop=drag.t-dy}});window.addEventListener('pointerup',()=>{drag=null});
+function highlight(n,id){const related=new Set(n?[n]:[]);refs.filter(r=>id?r.id===id:r.from===n||r.to===n).forEach(r=>{related.add(r.from);related.add(r.to)});document.querySelectorAll('.edge').forEach(e=>{const active=id?e.dataset.ref===id:e.dataset.from===n||e.dataset.to===n;e.classList.toggle('muted',!!(n||id)&&!active);e.classList.toggle('selected',!!(n||id)&&active)});document.querySelectorAll('.entity').forEach(e=>{e.classList.toggle('muted',!!(n||id)&&!related.has(e.dataset.table));e.classList.toggle('selected',e.dataset.table===n)});document.querySelector('#status').textContent=id?refs.filter(r=>r.id===id).map(r=>`${r.id}: ${r.from}.${r.field} → ${r.to}.${r.target}`).join(''):n||''}
+document.querySelectorAll('.entity').forEach(e=>{e.onclick=()=>{if(!moved)highlight(e.dataset.table)};e.ondblclick=()=>show(e.dataset.table);e.onkeydown=k=>{if(k.key==='Enter')highlight(e.dataset.table)}});document.querySelectorAll('.edge').forEach(e=>e.onclick=()=>{if(!moved)highlight(null,e.dataset.ref)});document.querySelector('#reset').onclick=()=>{highlight();document.querySelector('#search').value=''};
+document.querySelector('#search').oninput=e=>{const q=e.target.value.trim().toLowerCase();if(!q){highlight();return}const t=Object.values(schema).find(t=>t.name.includes(q)||t.fields.some(f=>f.name.includes(q)));if(t){highlight(t.name);setZoom(.8);viewport.scrollLeft=t.x*zoom-40;viewport.scrollTop=t.y*zoom-40}};
+function show(n){document.querySelector('#modalBody').innerHTML='<h2>'+esc(n||'Original DBML')+'</h2><pre>'+esc(n?schema[n].raw+'\n'+refs.filter(r=>r.from===n||r.to===n).map(r=>`${r.id}: ${r.from}.${r.field} > ${r.to}.${r.target}`).join('\n'):raw)+'</pre>';document.querySelector('#modal').showModal()}
+document.querySelector('#source').onclick=()=>show();document.querySelector('#close').onclick=()=>document.querySelector('#modal').close();
+function download(blob,name){const u=URL.createObjectURL(blob),a=document.createElement('a');a.href=u;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(u),3000)}
+function svgBlob(){const clone=document.querySelector('#stage svg').cloneNode(true);clone.style.width='';clone.style.height='';clone.querySelectorAll('.muted,.selected').forEach(e=>e.classList.remove('muted','selected'));return new Blob([new XMLSerializer().serializeToString(clone)],{type:'image/svg+xml;charset=utf-8'})}
+document.querySelector('#svgSave').onclick=()=>download(svgBlob(),'SKALog-ERD-complete.svg');
+async function png(crop){const button=document.querySelector(crop?'#cropSave':'#pngSave'),label=button.textContent;button.disabled=true;button.textContent='이미지 생성 중…';let u;try{await document.fonts.ready;u=URL.createObjectURL(svgBlob());const im=new Image;await new Promise((resolve,reject)=>{im.onload=resolve;im.onerror=reject;im.src=u});const c=document.createElement('canvas');if(crop){const sx=Math.max(0,(viewport.scrollLeft-24)/zoom),sy=Math.max(0,(viewport.scrollTop-24)/zoom),sw=Math.min(W-sx,viewport.clientWidth/zoom),sh=Math.min(H-sy,viewport.clientHeight/zoom);c.width=Math.round(sw*1.5);c.height=Math.round(sh*1.5);c.getContext('2d').drawImage(im,sx,sy,sw,sh,0,0,c.width,c.height)}else{c.width=W*1.5;c.height=Math.round(H*1.5);c.getContext('2d').drawImage(im,0,0,c.width,c.height)}const blob=await new Promise(r=>c.toBlob(r,'image/png'));if(!blob)throw Error('PNG failed');download(blob,crop?'SKALog-ERD-viewport.png':'SKALog-ERD-complete.png')}catch(e){alert('PNG 생성 실패: SVG 저장을 이용해주세요.')}finally{if(u)URL.revokeObjectURL(u);button.disabled=false;button.textContent=label}}
+document.querySelector('#pngSave').onclick=()=>png(false);document.querySelector('#cropSave').onclick=()=>png(true);
+setZoom(.75);
+</script></html>

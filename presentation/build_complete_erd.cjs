@@ -1,0 +1,13 @@
+const fs=require('node:fs'),path=require('node:path'),vm=require('node:vm'),assert=require('node:assert/strict');
+const raw=fs.readFileSync(path.join(__dirname,'../SKALA교육플랫폼-DB.dbml'),'utf8');
+const js=fs.readFileSync(path.join(__dirname,'erd-complete.js'),'utf8');
+const html=fs.readFileSync(path.join(__dirname,'erd-complete.template.html'),'utf8').replace('__DBML__',raw).replace('__SCRIPT__',()=>js);
+const nodes=new Map();const document={querySelector(s){if(!nodes.has(s))nodes.set(s,{textContent:s==='#dbml'?raw:'',innerHTML:'',style:{},clientWidth:1600,clientHeight:900,addEventListener(){},showModal(){},classList:{remove(){},add(){}}});return nodes.get(s)},querySelectorAll(){return []}};
+const c=vm.createContext({document,window:{addEventListener(){}},console});vm.runInContext(js,c);
+const summary=vm.runInContext(`({tables:Object.keys(schema).length,columns:Object.values(schema).reduce((n,t)=>n+t.fields.length,0),refs:refs.length,enums:Object.keys(enums).length,indexes:Object.values(schema).reduce((n,t)=>n+t.indexes.length,0),width:W,height:H})`,c);
+assert.equal(summary.tables,11);assert.equal(summary.columns,60);assert.equal(summary.refs,15);assert.equal(summary.enums,6);
+assert.equal(summary.indexes,raw.split('\n').filter(l=>/^    \(/.test(l)).length);
+vm.runInContext(`for(const r of refs){if(!schema[r.from].fields.some(f=>f.name===r.field)||!schema[r.to].fields.some(f=>f.name===r.target))throw Error('Invalid FK')}for(const n of ['question_tags','post_user_states','course_sessions','course_instructor_assignments'])if(schema[n].fields.filter(f=>f.pk).length!==2)throw Error('Missing composite PK');for(const t of Object.values(schema))if(t.y+t.h>bottom)throw Error('Table overflow')`,c);
+const svg=document.querySelector('#stage').innerHTML;assert.equal((svg.match(/class="edge"/g)||[]).length,summary.refs);assert.equal((svg.match(/data-column=/g)||[]).length,summary.columns);assert.equal((svg.match(/class="entity"/g)||[]).length,summary.tables);assert(!/NaN|undefined/.test(svg));
+fs.mkdirSync(path.join(__dirname,'erd-exports'),{recursive:true});fs.writeFileSync(path.join(__dirname,'SKALog-ERD.html'),html);fs.writeFileSync(path.join(__dirname,'erd-exports/SKALog-ERD-complete.svg'),svg);
+console.log('Verified full ERD:',summary);
